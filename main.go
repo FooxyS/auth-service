@@ -11,6 +11,6 @@ func main() {
 	router := router.SetupRouter()
 	errStart := http.ListenAndServe("localhost:8080", router)
 	if errStart != nil {
-		log.Fatalf("error with starting the server: %v", errStart)
+		log.Fatalf("error with starting the server: %v\n", errStart)
 	}
 }
