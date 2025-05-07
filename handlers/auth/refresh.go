@@ -1,13 +1,19 @@
 package auth
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 /*
@@ -116,5 +122,65 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	/*
 		создание новой пары токенов
 	*/
-	//
+	//создание нового uuid пары токенов
+	newPairID := uuid.New().String()
+
+	//создание нового access токена
+	newAccessClaims := MyCustomClaims{
+		UserID: accessClaims.UserID,
+		PairID: newPairID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	newAccessToken, errWithGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, newAccessClaims).SignedString(jwtkey)
+	if errWithGenAccess != nil {
+		log.Printf("error with generating access token: %v\n", errWithGenAccess)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	AccessJson := AccessTokenJson{
+		Access: newAccessToken,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	errParseJson := json.NewEncoder(w).Encode(AccessJson)
+	if errParseJson != nil {
+		log.Printf("error with parsing json response: %v\n", errParseJson)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//создание нового refresh токена
+	b := make([]byte, 32)
+	newRefreshToken := base64.URLEncoding.EncodeToString(b)
+
+	newCookie := http.Cookie{
+		Name:     "refresh-token",
+		Value:    newRefreshToken,
+		Path:     "/",
+		Expires:  time.Now().Add(15 * time.Minute),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(w, &newCookie)
+
+	//добавление refresh токена в БД
+	hashedNewRefresh, errHashRefresh := bcrypt.GenerateFromPassword([]byte(newRefreshToken), bcrypt.DefaultCost)
+	if errHashRefresh != nil {
+		log.Printf("error with hashing refresh token: %v\n", errHashRefresh)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//логика добавления новых данных в БД...
+	fmt.Println("загушка добавления ", hashedNewRefresh)
+
 }
