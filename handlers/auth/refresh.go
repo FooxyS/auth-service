@@ -110,6 +110,11 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	if ipFromReq != IPAddrFromDB {
 		//логика отправки post запроса на заданный webhook...
 		errSendWebhook := SendWebhook(ipFromReq)
+		if errSendWebhook != nil {
+			log.Printf("error with sending webhook: %v\n", errSendWebhook)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	/*
