@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 
@@ -37,6 +38,38 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	*/
 	pairIDFromDB := "заглушка. pairid из бд"
 	userAgentFromDB := "заглушка. User-Agent из бд"
+	IPAddrFromDB := "заглушка. IP из бд"
+
+	/*
+		проверить IP пользователя. Если запрос с нового IP, то отправить на webhook сообщение о попытке входа с нового устройства.
+		(операция должна проболжиться)
+	*/
+	//получение ip пользователя из запроса
+	ipFromReq, _, errWithSplitIP := net.SplitHostPort(r.RemoteAddr)
+	if errWithSplitIP != nil {
+		log.Printf("error with parse remoteAddr to IP: %v\n", errWithSplitIP)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	//сравнение IP адресов
+	if ipFromReq != IPAddrFromDB {
+		//логика отправки post запроса на заданный webhook...
+
+	}
+
+	/*
+		достать User-Agent из БД и запроса, сравнить. Если не совпадает, то деавторизовать пользователя.
+		(удалить сессию из БД, отправить код unauthorized)
+	*/
+	//достаём User-Agent из запроса
+	agentFromReq := r.Header.Get("User-Agent")
+	if userAgentFromDB != agentFromReq {
+		//логика удаления сессии пользователя из БД...
+
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	/*
 		распарсить access, проверить pairid -> были выданы вместе -> доступ разрешён
@@ -81,20 +114,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	/*
-		достать User-Agent из БД и запроса, сравнить. Если не совпадает, то деавторизовать пользователя.
-		(удалить сессию из БД, отправить код unauthorized)
+		создание новой пары токенов
 	*/
-	//достаём User-Agent из запроса
-	agentFromReq := r.Header.Get("User-Agent")
-	if userAgentFromDB != agentFromReq {
-		//логика удаления сессии пользователя из БД...
-
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	/*
-		проверить IP пользователя. Если запрос с нового IP, то отправить на webhook сообщение о попытке входа с нового устройства.
-		(операция должна проболжиться)
-	*/
+	//
 }
