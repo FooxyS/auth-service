@@ -25,13 +25,13 @@ type AccessTokenJson struct {
 	Access string `json:"access"`
 }
 
-func GetJwtFromEnv() (string, error) {
+func GetFromEnv(key string) (string, error) {
 	errGotEnv := godotenv.Load()
 	if errGotEnv != nil {
 		return "", errGotEnv
 	}
-	key := os.Getenv("JWT_KEY")
-	return key, nil
+	val := os.Getenv(key)
+	return val, nil
 }
 
 func GenerateRefreshToken() (string, error) {
@@ -54,7 +54,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	//создание id пары токенов, по которому мы сможем определить были ли они выданы вместе
 	pairid := uuid.New().String()
 
-	jwtkey, errGotEnv := GetJwtFromEnv()
+	jwtkey, errGotEnv := GetFromEnv("JWT_KEY")
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
