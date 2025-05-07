@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -38,6 +39,53 @@ func ParseTokenFromHeader(s string) (string, error) {
 	return substr[1], nil
 }
 
+type WebhookJson struct {
+	Message string `json:"message"`
+}
+
+func SendWebhook(ip string) error {
+	//создание ответа
+	text := fmt.Sprintf("Попытка входа с нового IP: %s\n", ip)
+
+	respBody := WebhookJson{
+		Message: text,
+	}
+
+	jsonRespBody, errParseJson := json.Marshal(respBody)
+	if errParseJson != nil {
+		return errParseJson
+	}
+
+	//достаём URL из env
+	webhookurl, errGetEnv := GetFromEnv("WEBHOOK_URL")
+	if errGetEnv != nil || webhookurl == "" {
+		log.Printf("error with get from env: %v\n", errGetEnv)
+		return errGetEnv
+	}
+
+	//формируем новый запрос
+	req, errResp := http.NewRequest(http.MethodPost, webhookurl, bytes.NewBuffer([]byte(jsonRespBody)))
+	if errResp != nil {
+		log.Printf("error with creating new request: %v\n", errResp)
+		return errResp
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := new(http.Client)
+
+	resp, errDoReq := client.Do(req)
+	if errDoReq != nil {
+		log.Printf("error with sending request: %v\n", errDoReq)
+		return errDoReq
+	}
+
+	defer resp.Body.Close()
+
+	log.Printf("Webhook отправлен. Статус ответа: %v\n", resp.Status)
+	return nil
+}
+
 func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	/*
 		проверить, храниться ли refresh токен в БД, чтобы убедиться, что у нас не была выполнена операция logout
@@ -61,7 +109,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	//сравнение IP адресов
 	if ipFromReq != IPAddrFromDB {
 		//логика отправки post запроса на заданный webhook...
-
+		errSendWebhook := SendWebhook(ipFromReq)
 	}
 
 	/*
@@ -95,7 +143,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//загрузка секретной строки
-	jwtkey, errGotEnv := GetJwtFromEnv()
+	jwtkey, errGotEnv := GetFromEnv("JWT_KEY")
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
