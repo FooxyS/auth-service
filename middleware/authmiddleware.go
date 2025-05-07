@@ -43,7 +43,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		accessClaims := new(auth.MyCustomClaims)
 
 		//достаю secretString из env
-		jwtkey, errGetKey := auth.GetJwtFromEnv()
+		jwtkey, errGetKey := auth.GetFromEnv("JWT_KEY")
 		if errGetKey != nil {
 			log.Printf("error with env: %v", errGetKey)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
