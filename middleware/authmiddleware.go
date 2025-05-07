@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,23 +12,37 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func ParseTokenFromHeader(s string) string {
+type UserIDkey string
+
+const ctxValueKey UserIDkey = "UserIDKey"
+
+func ParseTokenFromHeader(s string) (string, error) {
 	substr := strings.Split(s, " ")
-	return substr[1]
+	if len(substr) < 2 {
+		return "", errors.New("massive is too short. Out of range")
+	}
+
+	return substr[1], nil
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//получение токена, user-agent, IP
+		//проверка хэдера авторизации
 		authBearer := r.Header.Get("Authorization")
-		userAgent := r.Header.Get("User-Agent")
-
-		//парсинг токена
-		authToken := ParseTokenFromHeader(authBearer)
+		if authBearer == "" {
+			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+			return
+		}
+		authToken, errMassShort := ParseTokenFromHeader(authBearer)
+		if errMassShort != nil {
+			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
+			return
+		}
 
 		//проверка токена на валидность и возврат userID
-		accessClaims := auth.MyCustomClaims{}
+		accessClaims := new(auth.MyCustomClaims)
 
+		//достаю secretString из env
 		jwtkey, errGetKey := auth.GetJwtFromEnv()
 		if errGetKey != nil {
 			log.Printf("error with env: %v", errGetKey)
@@ -34,10 +50,40 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		jwt.ParseWithClaims(authToken, accessClaims, func(token *jwt.Token) (interface{}, error) {
+		//парсинг JWT в структуру и проверка валидности токена
+		token, errWithParseToken := jwt.ParseWithClaims(authToken, accessClaims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtkey), nil
 		})
+		if errWithParseToken != nil || !token.Valid {
+			log.Printf("error with parsing JWT: %v", errWithParseToken)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-		fmt.Printf("сравнивание user-agent: %s", userAgent)
+		//получение id из claims, user-agent, IP
+		id := accessClaims.UserID
+		userAgent := r.Header.Get("User-Agent")
+
+		/*
+			логика получения IP пользователя
+		*/
+
+		/*
+			достаём нужные данные из БД по userID
+		*/
+		fmt.Println("сравниваем ", userAgent)
+		fmt.Println("сравниваем IP")
+
+		/*
+			если что-то не сошлось отправляем ошибку авторизации
+
+			удаляем refresh токен из БД
+		*/
+
+		//кладём в контекст userID, отправляем в обработчик
+		ctx := context.WithValue(r.Context(), ctxValueKey, id)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
 	})
 }
