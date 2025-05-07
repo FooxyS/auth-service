@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type MyCustomClaims struct {
 	UserID string
+	PairID string
 	jwt.RegisteredClaims
 }
 
@@ -43,11 +45,14 @@ func GenerateRefreshToken() (string, error) {
 }
 
 func InitHandler(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("userid")
-	if id == "" {
+	idFromURL := r.URL.Query().Get("userid")
+	if idFromURL == "" {
 		http.Error(w, "query param is empty", http.StatusBadRequest)
 		return
 	}
+
+	//создание id пары токенов, по которому мы сможем определить были ли они выданы вместе
+	pairid := uuid.New().String()
 
 	jwtkey, errGotEnv := GetJwtFromEnv()
 	if errGotEnv != nil {
@@ -58,7 +63,8 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 
 	//определение параметров для создания JWT токена
 	accessClaims := MyCustomClaims{
-		UserID: id,
+		UserID: idFromURL,
+		PairID: pairid,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -113,5 +119,5 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("логика добавления хэшированного токена в БД: %v", hashedRefresh)
-	//нужно добавить в БД userID, hashedrefreshtoken, User-Agent, IP
+	//нужно добавить в БД userID, hashedrefreshtoken, User-Agent, IP, pairID
 }
