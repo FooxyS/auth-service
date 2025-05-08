@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -211,6 +212,13 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 
 	//создание нового refresh токена
 	b := make([]byte, 32)
+	_, errWithRand := rand.Read(b)
+	if errWithRand != nil {
+		log.Printf("error with filling slice: %v\n", errWithRand)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	newRefreshToken := base64.URLEncoding.EncodeToString(b)
 
 	newCookie := http.Cookie{
