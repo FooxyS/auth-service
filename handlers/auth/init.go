@@ -55,14 +55,33 @@ func GenerateRefreshToken() (string, error) {
 }
 
 func InitHandler(w http.ResponseWriter, r *http.Request) {
-	//структура с данными сессии пользователя
-	session := new(Session)
+	//достаём пул подключений из контекста
+	pgpool, ok := r.Context().Value("postgres").(*pgxpool.Pool)
+	if !ok {
+		log.Println("value not found in context")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 
 	idFromURL := r.URL.Query().Get("userid")
 	if idFromURL == "" {
 		http.Error(w, "query param is empty", http.StatusBadRequest)
 		return
 	}
+
+	var ExistedUserID string
+
+	//проверка, есть ли пользователь в БД
+	errQueryRow := pgpool.QueryRow(r.Context(), "select user_id from session_table where user_id=$1", idFromURL).Scan(&ExistedUserID)
+	if errQueryRow == nil {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("пользователь уже зарегистрирован"))
+		return
+	}
+
+	//структура с данными сессии пользователя
+	session := new(Session)
+
 	//добавление GUID в информацию о сессии
 	session.ID = idFromURL
 
@@ -89,7 +108,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//создание access и refresh токенов
-	accessToken, errGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, accessClaims).SignedString(jwtkey)
+	accessToken, errGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, accessClaims).SignedString([]byte(jwtkey))
 	if errGenAccess != nil {
 		log.Printf("error with creating jwt: %v", errGenAccess)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -103,6 +122,15 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie := http.Cookie{
+		Name:     "refreshtoken",
+		Value:    refreshToken,
+		Path:     "/",
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
 	//отправка токенов
 	accessResp := AccessTokenJson{
 		Access: accessToken,
@@ -115,17 +143,6 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	cookie := http.Cookie{
-		Name:     "refresh-token",
-		Value:    refreshToken,
-		Path:     "/",
-		Expires:  time.Now().Add(7 * 24 * time.Hour),
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-	}
-	http.SetCookie(w, &cookie)
 
 	//добавление refresh токена в БД
 	hashedRefresh, errHashRefresh := bcrypt.GenerateFromPassword([]byte(refreshToken), bcrypt.DefaultCost)
@@ -150,16 +167,8 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	session.IP = ip
 
-	//достаём пул подключений из контекста
-	pgpool, ok := r.Context().Value("postgres").(*pgxpool.Pool)
-	if !ok {
-		log.Println("value not found in context")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	//добавляем информацию о сессии в БД
-	_, errWithExec := pgpool.Exec(r.Context(), "INSERT INTO session_table (id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING", session.ID, session.IP, session.PairID, session.RefreshToken, session.UserAgent)
+	_, errWithExec := pgpool.Exec(r.Context(), "INSERT INTO session_table (user_id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING", session.ID, session.IP, session.PairID, session.RefreshToken, session.UserAgent)
 	if errWithExec != nil {
 		log.Printf("error with Exec: %v\n", errWithExec)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
