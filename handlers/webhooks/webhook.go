@@ -1,5 +1,0 @@
-package webhooks
-
-func WebhookHandler() {
-
-}
