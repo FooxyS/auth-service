@@ -5,15 +5,25 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type Session struct {
+	ID           string `json:"id"`
+	IP           string `json:"ip"`
+	RefreshToken string `json:"refreshtoken"`
+	PairID       string `json:"pairid"`
+	UserAgent    string `json:"useragent"`
+}
 
 type MyCustomClaims struct {
 	UserID string
@@ -45,11 +55,16 @@ func GenerateRefreshToken() (string, error) {
 }
 
 func InitHandler(w http.ResponseWriter, r *http.Request) {
+	//структура с данными сессии пользователя
+	session := new(Session)
+
 	idFromURL := r.URL.Query().Get("userid")
 	if idFromURL == "" {
 		http.Error(w, "query param is empty", http.StatusBadRequest)
 		return
 	}
+	//добавление GUID в информацию о сессии
+	session.ID = idFromURL
 
 	//создание id пары токенов, по которому мы сможем определить были ли они выданы вместе
 	pairid := uuid.New().String()
@@ -60,6 +75,8 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	//добавление pairid в информацию о сессии
+	session.PairID = pairid
 
 	//определение параметров для создания JWT токена
 	accessClaims := MyCustomClaims{
@@ -117,7 +134,35 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	//добавление hashedrefresh в информацию о сессии
+	session.RefreshToken = string(hashedRefresh)
 
-	log.Printf("логика добавления хэшированного токена в БД: %v", hashedRefresh)
-	//нужно добавить в БД userID, hashedrefreshtoken, User-Agent, IP, pairID
+	//добавление useragent в информацию о сессии
+	agent := r.Header.Get("User-Agent")
+	session.UserAgent = agent
+
+	//добавление IP в информацию о сессии
+	ip, _, errSplitHostPost := net.SplitHostPort(r.RemoteAddr)
+	if errSplitHostPost != nil {
+		log.Printf("error with spliting remoteaddr: %v\n", errSplitHostPost)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	session.IP = ip
+
+	//достаём пул подключений из контекста
+	pgpool, ok := r.Context().Value("postgres").(*pgxpool.Pool)
+	if !ok {
+		log.Println("value not found in context")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//добавляем информацию о сессии в БД
+	_, errWithExec := pgpool.Exec(r.Context(), "INSERT INTO session_table (id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING", session.ID, session.IP, session.PairID, session.RefreshToken, session.UserAgent)
+	if errWithExec != nil {
+		log.Printf("error with Exec: %v\n", errWithExec)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
