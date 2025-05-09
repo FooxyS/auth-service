@@ -11,10 +11,8 @@ type UserJsonID struct {
 }
 
 func MeHandler(w http.ResponseWriter, r *http.Request) {
-	type UserIDkey string
-	const ctxValueKey UserIDkey = "UserIDKey"
 
-	id, ok := r.Context().Value(ctxValueKey).(string)
+	id, ok := r.Context().Value("UserIDKey").(string)
 	if !ok || id == "" {
 		log.Println("wrong type or empty context")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
