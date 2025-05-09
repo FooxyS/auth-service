@@ -127,7 +127,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//записываем информацию о куке в структуру
-	refreshCookie, errNoCookie := r.Cookie("refresh-token")
+	refreshCookie, errNoCookie := r.Cookie("refreshtoken")
 	if errNoCookie != nil {
 		log.Printf("errNoCookie: %v\n", errNoCookie)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -142,18 +142,20 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("деавторизация из-за несовпадения pairID")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	//проверяем expires refresh токена. Если истёк, то удаляем инфу о сессиии пользователя
-	if isbefore := refreshCookie.Expires.Compare(time.Now()); isbefore == -1 {
+	if isbefore := refreshCookie.Expires.Compare(time.Now()); isbefore == 1 {
 		_, errWithExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", accessClaims.UserID)
 		if errWithExec != nil {
 			log.Printf("errWithExec: %v\n", errWithExec)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("деавторизация из-за истечения срока годности у токена refresh")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -185,6 +187,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("деавторизация из-за несовпадения refresh токенов")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -202,6 +205,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("деавторизация из-за несовпадения user-agent")
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -221,13 +225,11 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	newRefreshToken := base64.URLEncoding.EncodeToString(b)
 
 	newCookie := http.Cookie{
-		Name:     "refresh-token",
+		Name:     "refreshtoken",
 		Value:    newRefreshToken,
 		Path:     "/",
 		Expires:  time.Now().Add(7 * 24 * time.Hour),
-		Secure:   true,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
 	}
 
 	http.SetCookie(w, &newCookie)
@@ -242,7 +244,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	newAccessToken, errWithGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, newAccessClaims).SignedString(jwtkey)
+	newAccessToken, errWithGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, newAccessClaims).SignedString([]byte(jwtkey))
 	if errWithGenAccess != nil {
 		log.Printf("error with generating access token: %v\n", errWithGenAccess)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
