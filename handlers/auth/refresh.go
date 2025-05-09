@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -88,52 +89,14 @@ func SendWebhook(ip string) error {
 }
 
 func RefreshHandler(w http.ResponseWriter, r *http.Request) {
-	/*
-		проверить, храниться ли refresh токен в БД, чтобы убедиться, что у нас не была выполнена операция logout
-	*/
-	pairIDFromDB := "заглушка. pairid из бд"
-	userAgentFromDB := "заглушка. User-Agent из бд"
-	IPAddrFromDB := "заглушка. IP из бд"
 
-	/*
-		проверить IP пользователя. Если запрос с нового IP, то отправить на webhook сообщение о попытке входа с нового устройства.
-		(операция должна проболжиться)
-	*/
-	//получение ip пользователя из запроса
-	ipFromReq, _, errWithSplitIP := net.SplitHostPort(r.RemoteAddr)
-	if errWithSplitIP != nil {
-		log.Printf("error with parse remoteAddr to IP: %v\n", errWithSplitIP)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	//достаём пул подключений из контекста
+	pgpool, ok := r.Context().Value("postgres").(*pgxpool.Pool)
+	if !ok {
+		log.Println("value not found in context")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
-	//сравнение IP адресов
-	if ipFromReq != IPAddrFromDB {
-		//логика отправки post запроса на заданный webhook...
-		errSendWebhook := SendWebhook(ipFromReq)
-		if errSendWebhook != nil {
-			log.Printf("error with sending webhook: %v\n", errSendWebhook)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	/*
-		достать User-Agent из БД и запроса, сравнить. Если не совпадает, то деавторизовать пользователя.
-		(удалить сессию из БД, отправить код unauthorized)
-	*/
-	//достаём User-Agent из запроса
-	agentFromReq := r.Header.Get("User-Agent")
-	if userAgentFromDB != agentFromReq {
-		//логика удаления сессии пользователя из БД...
-
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	/*
-		распарсить access, проверить pairid -> были выданы вместе -> доступ разрешён
-	*/
 
 	//парсинг access токена, сравнение pairid
 	//проверка хэдера авторизации
@@ -167,17 +130,120 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//проверка pairid
-	if accessClaims.PairID != pairIDFromDB {
+	//проверяем данные о сессии пользователя по userid
+	var session Session
+	errQueryRow := pgpool.QueryRow(r.Context(), "SELECT * FROM session_table WHERE user_id=$1", accessClaims.UserID).Scan(&session.ID, &session.IP, &session.PairID, &session.RefreshToken, &session.UserAgent)
+	if errQueryRow != nil {
+		log.Printf("error with QueryRow: %v\n", errQueryRow)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//записываем информацию о куке в структуру
+	refreshCookie, errNoCookie := r.Cookie("refresh-token")
+	if errNoCookie != nil {
+		log.Printf("errNoCookie: %v\n", errNoCookie)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//проверка pairid. Если false, то выдача новой пары запрещена -> деавторизация
+	if accessClaims.PairID != session.PairID {
+		_, errWithExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", accessClaims.UserID)
+		if errWithExec != nil {
+			log.Printf("errWithExec: %v\n", errWithExec)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	//проверяем expires refresh токена. Если истёк, то удаляем инфу о сессиии пользователя
+	if isbefore := refreshCookie.Expires.Compare(time.Now()); isbefore == -1 {
+		_, errWithExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", accessClaims.UserID)
+		if errWithExec != nil {
+			log.Printf("errWithExec: %v\n", errWithExec)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	//получение ip пользователя из запроса
+	ipFromReq, _, errWithSplitIP := net.SplitHostPort(r.RemoteAddr)
+	if errWithSplitIP != nil {
+		log.Printf("error with parse remoteAddr to IP: %v\n", errWithSplitIP)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	//сравнение IP адресов
+	if ipFromReq != session.IP {
+		//логика отправки post запроса на заданный webhook...
+		errSendWebhook := SendWebhook(ipFromReq)
+		if errSendWebhook != nil {
+			log.Printf("error with sending webhook: %v\n", errSendWebhook)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	ErrWithCompareResresh := bcrypt.CompareHashAndPassword([]byte(session.RefreshToken), []byte(refreshCookie.Value))
+	if ErrWithCompareResresh != nil {
+		_, errWithExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", accessClaims.UserID)
+		if errWithExec != nil {
+			log.Printf("errWithExec: %v\n", errWithExec)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	/*
-		создание новой пары токенов
+		достать User-Agent из БД и запроса, сравнить. Если не совпадает, то деавторизовать пользователя.
+		(удалить сессию из БД, отправить код unauthorized)
 	*/
+	//достаём User-Agent из запроса
+	agentFromReq := r.Header.Get("User-Agent")
+	if session.UserAgent != agentFromReq {
+		_, errWithExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", accessClaims.UserID)
+		if errWithExec != nil {
+			log.Printf("errWithExec: %v\n", errWithExec)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	//создание нового uuid пары токенов
 	newPairID := uuid.New().String()
+
+	//создание нового refresh токена
+	b := make([]byte, 32)
+	_, errWithRand := rand.Read(b)
+	if errWithRand != nil {
+		log.Printf("error with filling slice: %v\n", errWithRand)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	newRefreshToken := base64.URLEncoding.EncodeToString(b)
+
+	newCookie := http.Cookie{
+		Name:     "refresh-token",
+		Value:    newRefreshToken,
+		Path:     "/",
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(w, &newCookie)
 
 	//создание нового access токена
 	newAccessClaims := MyCustomClaims{
@@ -210,30 +276,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//создание нового refresh токена
-	b := make([]byte, 32)
-	_, errWithRand := rand.Read(b)
-	if errWithRand != nil {
-		log.Printf("error with filling slice: %v\n", errWithRand)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	newRefreshToken := base64.URLEncoding.EncodeToString(b)
-
-	newCookie := http.Cookie{
-		Name:     "refresh-token",
-		Value:    newRefreshToken,
-		Path:     "/",
-		Expires:  time.Now().Add(15 * time.Minute),
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	http.SetCookie(w, &newCookie)
-
-	//добавление refresh токена в БД
+	//хэшируем refresh токен для записи в БД
 	hashedNewRefresh, errHashRefresh := bcrypt.GenerateFromPassword([]byte(newRefreshToken), bcrypt.DefaultCost)
 	if errHashRefresh != nil {
 		log.Printf("error with hashing refresh token: %v\n", errHashRefresh)
@@ -241,7 +284,11 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//логика добавления новых данных в БД...
-	fmt.Println("загушка добавления ", hashedNewRefresh)
-
+	//обновляем данные о сессии
+	_, errWithExec := pgpool.Exec(r.Context(), "UPDATE session_table SET ip_address=$1, refresh_token=$2, pair_id=$3 WHERE user_id=$4", ipFromReq, string(hashedNewRefresh), newPairID, accessClaims.UserID)
+	if errWithExec != nil {
+		log.Printf("ErrWithExec: %v\n", errWithExec)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
