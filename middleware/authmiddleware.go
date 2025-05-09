@@ -12,10 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type UserIDkey string
-
-const ctxValueKey UserIDkey = "UserIDKey"
-
 func ParseTokenFromHeader(s string) (string, error) {
 	substr := strings.Split(s, " ")
 	if len(substr) < 2 {
@@ -81,7 +77,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		*/
 
 		//кладём в контекст userID, отправляем в обработчик
-		ctx := context.WithValue(r.Context(), ctxValueKey, id)
+		ctx := context.WithValue(r.Context(), "UserIDKey", id)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
