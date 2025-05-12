@@ -168,7 +168,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	session.IP = ip
 
 	//добавляем информацию о сессии в БД
-	_, errWithExec := pgpool.Exec(r.Context(), "INSERT INTO session_table (user_id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING", session.ID, session.IP, session.PairID, session.RefreshToken, session.UserAgent)
+	_, errWithExec := pgpool.Exec(r.Context(), "INSERT INTO session_table (user_id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5)", session.ID, session.IP, session.RefreshToken, session.PairID, session.UserAgent)
 	if errWithExec != nil {
 		log.Printf("error with Exec: %v\n", errWithExec)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
