@@ -55,5 +55,6 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Сессия пользователя успешно удалена"))
 }
