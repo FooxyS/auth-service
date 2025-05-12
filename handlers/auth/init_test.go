@@ -37,7 +37,8 @@ func TestInitHandler(t *testing.T) {
 	newUserID := uuid.New()
 
 	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/auth/init?userid=%s", newUserID.String()), nil)
+	path := fmt.Sprintf("/auth/init?userid=%s", newUserID.String())
+	req := httptest.NewRequest(http.MethodPost, path, nil)
 
 	expectedAgent := "Google Chrome"
 	req.Header.Set("User-Agent", expectedAgent)
@@ -54,7 +55,7 @@ func TestInitHandler(t *testing.T) {
 	checksession := new(auth.Session)
 	errQueryRow := pgpool.QueryRow(context.Background(),
 		"select * from session_table where user_id=$1",
-		newUserID.String()).Scan(&checksession.ID, &checksession.IP, &checksession.PairID, &checksession.RefreshToken, &checksession.UserAgent)
+		newUserID.String()).Scan(&checksession.ID, &checksession.IP, &checksession.RefreshToken, &checksession.PairID, &checksession.UserAgent)
 	if errQueryRow != nil {
 		t.Errorf("there is no row with expected data in db: %v\n", errQueryRow)
 		return
@@ -105,13 +106,18 @@ func TestInitHandler(t *testing.T) {
 	//get cookie with refresh and check it with the hashed refresh in db (also check other fields of cookie structure)
 	refcookie := new(http.Cookie)
 	cookies := resp.Result().Cookies()
+
+	found := false
 	for _, cookie := range cookies {
 		if cookie.Name == "refreshtoken" {
 			refcookie = cookie
-		} else {
-			t.Error("there is no expected cookie")
-			return
+			found = true
+			break
 		}
+	}
+	if !found {
+		t.Errorf("there is no expected cookie")
+		return
 	}
 
 	if refcookie.HttpOnly == false {
