@@ -16,6 +16,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// используется для получения переменной из env
 func GetFromEnv(key string) (string, error) {
 	errGotEnv := godotenv.Load()
 	if errGotEnv != nil {
@@ -25,6 +26,7 @@ func GetFromEnv(key string) (string, error) {
 	return val, nil
 }
 
+// используется для генерации refresh токена
 func GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	_, errGenRandStr := rand.Read(b)
@@ -35,6 +37,7 @@ func GenerateRefreshToken() (string, error) {
 	return result, nil
 }
 
+// используется для отделения токена от bearer
 func ParseTokenFromHeader(s string) (string, error) {
 	substr := strings.Split(s, " ")
 	if len(substr) < 2 {
@@ -44,6 +47,7 @@ func ParseTokenFromHeader(s string) (string, error) {
 	return substr[1], nil
 }
 
+// используется для отправки вэбхука
 func SendWebhook(ip string) error {
 	//создание ответа
 	text := fmt.Sprintf("Попытка входа с нового IP: %s\n", ip)
