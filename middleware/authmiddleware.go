@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/FooxyS/auth-service/handlers/auth"
+	auth "github.com/FooxyS/auth-service/auth/handlers"
+	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -77,7 +78,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		*/
 
 		//кладём в контекст userID, отправляем в обработчик
-		ctx := context.WithValue(r.Context(), "UserIDKey", id)
+		ctx := context.WithValue(r.Context(), consts.USER_ID_KEY, id)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)

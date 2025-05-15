@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	auth "github.com/FooxyS/auth-service/handlers/auth"
+	auth "github.com/FooxyS/auth-service/auth/handlers"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/FooxyS/auth-service/middleware"
