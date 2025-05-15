@@ -85,7 +85,7 @@ func TestInitHandler(t *testing.T) {
 	}
 
 	//parse access and check pair id, user id
-	accesstoken := new(auth.AccessTokenJson)
+	accesstoken := new(models.AccessTokenJson)
 	errDecodeJson := json.NewDecoder(resp.Body).Decode(accesstoken)
 	if errDecodeJson != nil {
 		t.Error("error with decoding the json")

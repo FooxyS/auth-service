@@ -18,10 +18,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AccessTokenJson struct {
-	Access string `json:"access"`
-}
-
 func GetFromEnv(key string) (string, error) {
 	errGotEnv := godotenv.Load()
 	if errGotEnv != nil {
@@ -119,7 +115,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	//отправка токенов
-	accessResp := AccessTokenJson{
+	accessResp := models.AccessTokenJson{
 		Access: accessToken,
 	}
 	w.WriteHeader(http.StatusOK)

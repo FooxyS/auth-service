@@ -252,7 +252,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	AccessJson := AccessTokenJson{
+	AccessJson := models.AccessTokenJson{
 		Access: newAccessToken,
 	}
 
