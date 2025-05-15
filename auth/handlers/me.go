@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-)
 
-type UserJsonID struct {
-	UserID string `json:"userid"`
-}
+	"github.com/FooxyS/auth-service/auth/models"
+)
 
 func MeHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -22,7 +20,7 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	jsonresp := UserJsonID{
+	jsonresp := models.UserJsonID{
 		UserID: id,
 	}
 	errParseJson := json.NewEncoder(w).Encode(jsonresp)

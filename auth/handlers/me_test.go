@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	auth "github.com/FooxyS/auth-service/auth/handlers"
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/pkg/consts"
 )
 
@@ -21,7 +22,7 @@ func TestMeHandler(t *testing.T) {
 
 	auth.MeHandler(resp, reqWithCtx)
 
-	respjson := new(auth.UserJsonID)
+	respjson := new(models.UserJsonID)
 
 	errDecodeJson := json.NewDecoder(resp.Body).Decode(respjson)
 	if errDecodeJson != nil {

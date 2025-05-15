@@ -19,3 +19,7 @@ type MyCustomClaims struct {
 type AccessTokenJson struct {
 	Access string `json:"access"`
 }
+
+type UserJsonID struct {
+	UserID string `json:"userid"`
+}
