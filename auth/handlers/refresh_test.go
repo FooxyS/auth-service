@@ -45,7 +45,7 @@ func TestRefreshHandler(t *testing.T) {
 
 	secret := os.Getenv("JWT_KEY")
 
-	newClaims := auth.MyCustomClaims{
+	newClaims := models.MyCustomClaims{
 		UserID: newsession.ID,
 		PairID: newsession.PairID,
 		RegisteredClaims: jwt.RegisteredClaims{

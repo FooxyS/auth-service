@@ -33,7 +33,7 @@ func TestLogoutHandler(t *testing.T) {
 	}
 	defer pgpool.Close()
 
-	testClaims := auth.MyCustomClaims{
+	testClaims := models.MyCustomClaims{
 		UserID: "72257344-9a79-4f52-9108-527fbaa73bb6",
 		PairID: "562093e3-cfcb-4f7e-931e-a13816ceead9",
 		RegisteredClaims: jwt.RegisteredClaims{

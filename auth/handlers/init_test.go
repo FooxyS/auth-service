@@ -92,7 +92,7 @@ func TestInitHandler(t *testing.T) {
 		return
 	}
 
-	checkclaims := new(auth.MyCustomClaims)
+	checkclaims := new(models.MyCustomClaims)
 	jwt.ParseWithClaims(accesstoken.Access, checkclaims, func(t *jwt.Token) (interface{}, error) {
 		return os.Getenv("JWT_KEY"), nil
 	})

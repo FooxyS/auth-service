@@ -107,7 +107,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessClaims := new(MyCustomClaims)
+	accessClaims := new(models.MyCustomClaims)
 
 	token, errWithParseToken := jwt.ParseWithClaims(authToken, accessClaims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(jwtkey), nil
@@ -236,7 +236,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &newCookie)
 
 	//создание нового access токена
-	newAccessClaims := MyCustomClaims{
+	newAccessClaims := models.MyCustomClaims{
 		UserID: accessClaims.UserID,
 		PairID: newPairID,
 		RegisteredClaims: jwt.RegisteredClaims{

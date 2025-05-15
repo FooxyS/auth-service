@@ -18,12 +18,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type MyCustomClaims struct {
-	UserID string
-	PairID string
-	jwt.RegisteredClaims
-}
-
 type AccessTokenJson struct {
 	Access string `json:"access"`
 }
@@ -91,7 +85,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	session.PairID = pairid
 
 	//определение параметров для создания JWT токена
-	accessClaims := MyCustomClaims{
+	accessClaims := models.MyCustomClaims{
 		UserID: idFromURL,
 		PairID: pairid,
 		RegisteredClaims: jwt.RegisteredClaims{

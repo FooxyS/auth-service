@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -38,7 +39,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessClaims := new(MyCustomClaims)
+	accessClaims := new(models.MyCustomClaims)
 
 	token, errWithParseToken := jwt.ParseWithClaims(authToken, accessClaims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(jwtkey), nil

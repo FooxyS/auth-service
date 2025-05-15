@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	auth "github.com/FooxyS/auth-service/auth/handlers"
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -37,7 +38,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		//проверка токена на валидность и возврат userID
-		accessClaims := new(auth.MyCustomClaims)
+		accessClaims := new(models.MyCustomClaims)
 
 		//достаю secretString из env
 		jwtkey, errGetKey := auth.GetFromEnv("JWT_KEY")
