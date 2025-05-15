@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/FooxyS/auth-service/handlers/auth"
+	auth "github.com/FooxyS/auth-service/auth/handlers"
 	"github.com/FooxyS/auth-service/pkg/consts"
 )
 

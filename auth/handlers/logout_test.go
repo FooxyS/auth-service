@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/FooxyS/auth-service/handlers/auth"
+	auth "github.com/FooxyS/auth-service/auth/handlers"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
