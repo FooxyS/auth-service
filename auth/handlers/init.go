@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net"
@@ -16,16 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func GenerateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	_, errGenRandStr := rand.Read(b)
-	if errGenRandStr != nil {
-		return "", errGenRandStr
-	}
-	result := base64.URLEncoding.EncodeToString(b)
-	return result, nil
-}
 
 func InitHandler(w http.ResponseWriter, r *http.Request) {
 	//достаём пул подключений из контекста
@@ -88,7 +76,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshToken, errGenRandStr := GenerateRefreshToken()
+	refreshToken, errGenRandStr := services.GenerateRefreshToken()
 	if errGenRandStr != nil {
 		log.Printf("error with creating refresh string: %v", errGenRandStr)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
