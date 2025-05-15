@@ -9,6 +9,7 @@ import (
 
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/auth/services"
+	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,7 +18,7 @@ import (
 
 func InitHandler(w http.ResponseWriter, r *http.Request) {
 	//достаём пул подключений из контекста
-	pgpool, ok := r.Context().Value("postgres").(*pgxpool.Pool)
+	pgpool, ok := r.Context().Value(consts.CTX_KEY_DB).(*pgxpool.Pool)
 	if !ok {
 		log.Println("value not found in context")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
