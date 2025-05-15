@@ -1,11 +1,9 @@
 package auth
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -18,53 +16,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type WebhookJson struct {
-	Message string `json:"message"`
-}
-
-func SendWebhook(ip string) error {
-	//создание ответа
-	text := fmt.Sprintf("Попытка входа с нового IP: %s\n", ip)
-
-	respBody := WebhookJson{
-		Message: text,
-	}
-
-	jsonRespBody, errParseJson := json.Marshal(respBody)
-	if errParseJson != nil {
-		return errParseJson
-	}
-
-	//достаём URL из env
-	webhookurl, errGetEnv := services.GetFromEnv("WEBHOOK_URL")
-	if errGetEnv != nil || webhookurl == "" {
-		log.Printf("error with get from env: %v\n", errGetEnv)
-		return errGetEnv
-	}
-
-	//формируем новый запрос
-	req, errResp := http.NewRequest(http.MethodPost, webhookurl, bytes.NewBuffer([]byte(jsonRespBody)))
-	if errResp != nil {
-		log.Printf("error with creating new request: %v\n", errResp)
-		return errResp
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := new(http.Client)
-
-	resp, errDoReq := client.Do(req)
-	if errDoReq != nil {
-		log.Printf("error with sending request: %v\n", errDoReq)
-		return errDoReq
-	}
-
-	defer resp.Body.Close()
-
-	log.Printf("Webhook отправлен. Статус ответа: %v\n", resp.Status)
-	return nil
-}
 
 func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -162,7 +113,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	//сравнение IP адресов
 	if ipFromReq != session.IP {
 		//логика отправки post запроса на заданный webhook...
-		errSendWebhook := SendWebhook(ipFromReq)
+		errSendWebhook := services.SendWebhook(ipFromReq)
 		if errSendWebhook != nil {
 			log.Printf("error with sending webhook: %v\n", errSendWebhook)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

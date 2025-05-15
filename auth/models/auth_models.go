@@ -23,3 +23,7 @@ type AccessTokenJson struct {
 type UserJsonID struct {
 	UserID string `json:"userid"`
 }
+
+type WebhookJson struct {
+	Message string `json:"message"`
+}
