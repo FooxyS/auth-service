@@ -10,20 +10,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type Session struct {
-	ID           string `json:"id"`
-	IP           string `json:"ip"`
-	RefreshToken string `json:"refreshtoken"`
-	PairID       string `json:"pairid"`
-	UserAgent    string `json:"useragent"`
-}
 
 type MyCustomClaims struct {
 	UserID string
@@ -80,7 +73,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//структура с данными сессии пользователя
-	session := new(Session)
+	session := new(models.Session)
 
 	//добавление GUID в информацию о сессии
 	session.ID = idFromURL

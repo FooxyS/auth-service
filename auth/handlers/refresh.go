@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -118,7 +119,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//проверяем данные о сессии пользователя по userid
-	var session Session
+	session := new(models.Session)
 	errQueryRow := pgpool.QueryRow(r.Context(), "SELECT * FROM session_table WHERE user_id=$1", accessClaims.UserID).Scan(&session.ID, &session.IP, &session.PairID, &session.RefreshToken, &session.UserAgent)
 	if errQueryRow != nil {
 		log.Printf("error with QueryRow: %v\n", errQueryRow)

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	auth "github.com/FooxyS/auth-service/auth/handlers"
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -48,7 +49,7 @@ func TestLogoutHandler(t *testing.T) {
 		return
 	}
 
-	newsession := auth.Session{
+	newsession := models.Session{
 		ID:           "72257344-9a79-4f52-9108-527fbaa73bb6",
 		IP:           "192.103.32.12",
 		RefreshToken: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e",
@@ -75,7 +76,7 @@ func TestLogoutHandler(t *testing.T) {
 
 	auth.LogoutHandler(resp, reqwithctx)
 
-	session := new(auth.Session)
+	session := new(models.Session)
 	ErrNoRows := pgpool.QueryRow(context.Background(), "select * from session_table where user_id=$1", newsession.ID).Scan(&session.ID, &session.IP, &session.PairID, &session.RefreshToken, &session.UserAgent)
 	if ErrNoRows == nil {
 		t.Error("there is row in db: want nil, got row")

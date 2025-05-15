@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	auth "github.com/FooxyS/auth-service/auth/handlers"
+	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -53,7 +54,7 @@ func TestInitHandler(t *testing.T) {
 	auth.InitHandler(resp, reqWithCtx)
 
 	//check db
-	checksession := new(auth.Session)
+	checksession := new(models.Session)
 	errQueryRow := pgpool.QueryRow(context.Background(),
 		"select * from session_table where user_id=$1",
 		newUserID.String()).Scan(&checksession.ID, &checksession.IP, &checksession.RefreshToken, &checksession.PairID, &checksession.UserAgent)
