@@ -3,7 +3,9 @@ package services
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -25,4 +27,13 @@ func GenerateRefreshToken() (string, error) {
 	}
 	result := base64.URLEncoding.EncodeToString(b)
 	return result, nil
+}
+
+func ParseTokenFromHeader(s string) (string, error) {
+	substr := strings.Split(s, " ")
+	if len(substr) < 2 {
+		return "", errors.New("massive is too short. Out of range")
+	}
+
+	return substr[1], nil
 }

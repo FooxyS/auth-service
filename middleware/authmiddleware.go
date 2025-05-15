@@ -2,26 +2,15 @@ package middleware
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-func ParseTokenFromHeader(s string) (string, error) {
-	substr := strings.Split(s, " ")
-	if len(substr) < 2 {
-		return "", errors.New("massive is too short. Out of range")
-	}
-
-	return substr[1], nil
-}
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +20,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 			return
 		}
-		authToken, errMassShort := ParseTokenFromHeader(authBearer)
+		authToken, errMassShort := services.ParseTokenFromHeader(authBearer)
 		if errMassShort != nil {
 			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 			return

@@ -5,12 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/FooxyS/auth-service/auth/models"
@@ -20,15 +18,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func ParseTokenFromHeader(s string) (string, error) {
-	substr := strings.Split(s, " ")
-	if len(substr) < 2 {
-		return "", errors.New("massive is too short. Out of range")
-	}
-
-	return substr[1], nil
-}
 
 type WebhookJson struct {
 	Message string `json:"message"`
@@ -94,7 +83,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
 	}
-	authToken, errMassShort := ParseTokenFromHeader(authBearer)
+	authToken, errMassShort := services.ParseTokenFromHeader(authBearer)
 	if errMassShort != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
