@@ -15,6 +15,7 @@ func SetupRouter(db *pgxpool.Pool) http.Handler {
 	mux.HandleFunc("/auth/logout", auth.LogoutHandler)
 	mux.Handle("/auth/me", middleware.AuthMiddleware(http.HandlerFunc(auth.MeHandler)))
 	mux.HandleFunc("/auth/refresh", auth.RefreshHandler)
+	mux.HandleFunc("/auth/register", auth.RegisterHandler)
 	wrappedmux := middleware.PostgresWithContext(db, mux)
 
 	return wrappedmux
