@@ -23,7 +23,7 @@ type AccessTokenJson struct {
 	Access string `json:"access"`
 }
 
-//используется для отправки пользоватею его GUID из обработчика /auth/me
+//используется для отправки пользоватею его GUID из обработчика /auth/me и /auth/register
 type UserJsonID struct {
 	UserID string `json:"userid"`
 }
@@ -31,4 +31,11 @@ type UserJsonID struct {
 //используется для отправки сообщения на webhook
 type WebhookJson struct {
 	Message string `json:"message"`
+}
+
+//структура данных пользователя
+type UserData struct {
+	UserID   string `json:"userid"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
