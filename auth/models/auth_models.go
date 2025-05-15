@@ -15,3 +15,7 @@ type MyCustomClaims struct {
 	PairID string
 	jwt.RegisteredClaims
 }
+
+type AccessTokenJson struct {
+	Access string `json:"access"`
+}
