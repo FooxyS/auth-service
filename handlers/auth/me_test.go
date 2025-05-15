@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/FooxyS/auth-service/handlers/auth"
+	"github.com/FooxyS/auth-service/pkg/consts"
 )
 
 func TestMeHandler(t *testing.T) {
@@ -15,7 +16,7 @@ func TestMeHandler(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/auth/me", nil)
 
 	userID := "db0e693f-c5e9-4e9e-bdb2-cd79a63a0fb8"
-	ctx := context.WithValue(req.Context(), "UserIDKey", userID)
+	ctx := context.WithValue(req.Context(), consts.USER_ID_KEY, userID)
 	reqWithCtx := req.WithContext(ctx)
 
 	auth.MeHandler(resp, reqWithCtx)

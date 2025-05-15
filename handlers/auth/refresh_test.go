@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FooxyS/auth-service/handlers/auth"
+	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -64,7 +65,7 @@ func TestRefreshHandler(t *testing.T) {
 
 	req.Header.Set("Authorization", access)
 
-	ctx := context.WithValue(context.Background(), "postgres", pgpool)
+	ctx := context.WithValue(context.Background(), consts.CTX_KEY_DB, pgpool)
 	reqWithCtx := req.WithContext(ctx)
 
 	auth.RefreshHandler(resp, reqWithCtx)

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/FooxyS/auth-service/handlers/auth"
+	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,7 +47,7 @@ func TestInitHandler(t *testing.T) {
 	expectedIP := "123.123.123.123"
 	req.RemoteAddr = expectedIP + ":8080"
 
-	ctx := context.WithValue(context.Background(), "postgres", pgpool)
+	ctx := context.WithValue(context.Background(), consts.CTX_KEY_DB, pgpool)
 	reqWithCtx := req.WithContext(ctx)
 
 	auth.InitHandler(resp, reqWithCtx)
