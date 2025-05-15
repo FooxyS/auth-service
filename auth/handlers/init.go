@@ -7,25 +7,15 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func GetFromEnv(key string) (string, error) {
-	errGotEnv := godotenv.Load()
-	if errGotEnv != nil {
-		return "", errGotEnv
-	}
-	val := os.Getenv(key)
-	return val, nil
-}
 
 func GenerateRefreshToken() (string, error) {
 	b := make([]byte, 32)
@@ -71,7 +61,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	//создание id пары токенов, по которому мы сможем определить были ли они выданы вместе
 	pairid := uuid.New().String()
 
-	jwtkey, errGotEnv := GetFromEnv("JWT_KEY")
+	jwtkey, errGotEnv := services.GetFromEnv("JWT_KEY")
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

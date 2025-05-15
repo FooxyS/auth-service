@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,7 +33,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//загрузка секретной строки
-	jwtkey, errGotEnv := GetFromEnv("JWT_KEY")
+	jwtkey, errGotEnv := services.GetFromEnv("JWT_KEY")
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

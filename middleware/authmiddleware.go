@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	auth "github.com/FooxyS/auth-service/auth/handlers"
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -41,7 +41,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		accessClaims := new(models.MyCustomClaims)
 
 		//достаю secretString из env
-		jwtkey, errGetKey := auth.GetFromEnv("JWT_KEY")
+		jwtkey, errGetKey := services.GetFromEnv("JWT_KEY")
 		if errGetKey != nil {
 			log.Printf("error with env: %v", errGetKey)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

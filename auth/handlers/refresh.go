@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,7 +48,7 @@ func SendWebhook(ip string) error {
 	}
 
 	//достаём URL из env
-	webhookurl, errGetEnv := GetFromEnv("WEBHOOK_URL")
+	webhookurl, errGetEnv := services.GetFromEnv("WEBHOOK_URL")
 	if errGetEnv != nil || webhookurl == "" {
 		log.Printf("error with get from env: %v\n", errGetEnv)
 		return errGetEnv
@@ -100,7 +101,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//загрузка секретной строки
-	jwtkey, errGotEnv := GetFromEnv("JWT_KEY")
+	jwtkey, errGotEnv := services.GetFromEnv("JWT_KEY")
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
