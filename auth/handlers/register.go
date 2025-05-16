@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/FooxyS/auth-service/pkg/consts"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -64,8 +67,83 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := "Пользователь успешно зарегистрирован"
+	newPairID := uuid.New()
 
+	accessdata := models.MyCustomClaims{
+		UserID: newIDForUser.String(),
+		PairID: newPairID.String(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	secStr, errWithEnv := services.GetFromEnv("JWT_KEY")
+	if errWithEnv != nil {
+		log.Printf("error with GetFromEnv(): %v\n", errWithEnv)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	access, errWithGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, accessdata).SignedString([]byte(secStr))
+	if errWithGenAccess != nil {
+		log.Printf("error with NewWithClaims(): %v\n", errWithGenAccess)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//дописать логику отправки токенов + собрать нужную инфу и загрузить в БД.
+	//также написать функцию, которая будет возвращать структуру с нужными данными
+	//создать в consts для Env ключей
+
+	refresh, errWithGenRefresh := services.GenerateRefreshToken()
+	if errWithGenRefresh != nil {
+		log.Printf("error with GenerateRefreshToken(): %v\n", errWithGenRefresh)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	hashedRefresh, errWithHashing := bcrypt.GenerateFromPassword([]byte(refresh), bcrypt.DefaultCost)
+	if errWithHashing != nil {
+		log.Printf("error with hashing: %v\n", errWithHashing)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	cookie := http.Cookie{
+		Name:     "refreshtoken",
+		Value:    refresh,
+		Path:     "/",
+		Expires:  time.Now().Add(7 * 24 * time.Hour),
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, &cookie)
+
+	accessToken := models.AccessTokenJson{
+		Access: access,
+	}
+
+	host, _, errSplitHostPost := net.SplitHostPort(r.RemoteAddr)
+	if errSplitHostPost != nil {
+		log.Printf("error with SplitHostPort(): %v\n", errSplitHostPost)
+	}
+
+	agent := r.Header.Get("User-Agent")
+
+	_, errInsertIntoSession := pgpool.Exec(r.Context(), "INSERT INTO session_table (user_id, ip_address, refresh_token, pair_id, useragent) VALUES ($1, $2, $3, $4, $5)", newIDForUser, host, hashedRefresh, newPairID, agent)
+	if errInsertIntoSession != nil {
+		log.Printf("error with Exec(): %v\n", errInsertIntoSession)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(message))
+	errEncodeResp := json.NewEncoder(w).Encode(accessToken)
+	if errEncodeResp != nil {
+		log.Printf("error with encoding json resonse: %v\n", errEncodeResp)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
