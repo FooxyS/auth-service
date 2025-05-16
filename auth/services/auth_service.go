@@ -95,6 +95,8 @@ func SendWebhook(ip string) error {
 
 // get cookie with refresh and check it with the hashed refresh in db (also check other fields of cookie structure)
 func GetRefreshFromCookie(resp *httptest.ResponseRecorder, t *testing.T) string {
+	t.Helper()
+
 	refcookie := new(http.Cookie)
 	cookies := resp.Result().Cookies()
 
