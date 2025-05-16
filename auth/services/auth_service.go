@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
+	"testing"
 
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/joho/godotenv"
@@ -89,4 +91,30 @@ func SendWebhook(ip string) error {
 
 	log.Printf("Webhook отправлен. Статус ответа: %v\n", resp.Status)
 	return nil
+}
+
+// get cookie with refresh and check it with the hashed refresh in db (also check other fields of cookie structure)
+func GetRefreshFromCookie(resp *httptest.ResponseRecorder, t *testing.T) string {
+	refcookie := new(http.Cookie)
+	cookies := resp.Result().Cookies()
+
+	found := false
+	for _, cookie := range cookies {
+		if cookie.Name == "refreshtoken" {
+			refcookie = cookie
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("there is no expected cookie")
+		return ""
+	}
+
+	if !refcookie.HttpOnly {
+		t.Error("wrong httponly field: want true, got false")
+		return ""
+	}
+
+	return refcookie.Value
 }
