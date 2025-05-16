@@ -78,7 +78,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	secStr, errWithEnv := services.GetFromEnv("JWT_KEY")
+	secStr, errWithEnv := services.GetFromEnv(consts.JWT_KEY)
 	if errWithEnv != nil {
 		log.Printf("error with GetFromEnv(): %v\n", errWithEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -94,7 +94,7 @@ func TestInitHandler(t *testing.T) {
 
 	checkclaims := new(models.MyCustomClaims)
 	jwt.ParseWithClaims(accesstoken.Access, checkclaims, func(t *jwt.Token) (interface{}, error) {
-		return os.Getenv("JWT_KEY"), nil
+		return os.Getenv(consts.JWT_KEY), nil
 	})
 	if checkclaims.UserID != newUserID.String() {
 		t.Errorf("wrong userid in access: want %s, got %s\n", newUserID.String(), checkclaims.UserID)

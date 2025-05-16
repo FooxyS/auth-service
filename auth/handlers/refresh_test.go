@@ -43,7 +43,7 @@ func TestRefreshHandler(t *testing.T) {
 		return
 	}
 
-	secret := os.Getenv("JWT_KEY")
+	secret := os.Getenv(consts.JWT_KEY)
 
 	newClaims := models.MyCustomClaims{
 		UserID: newsession.ID,

@@ -1,3 +1,5 @@
 package consts
 
-var DATABASE_URL_TEST string = "DATABASE_URL_TEST"
+var DATABASE_URL_TEST = "DATABASE_URL_TEST"
+
+var JWT_KEY = "JWT_KEY"

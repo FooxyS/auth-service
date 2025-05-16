@@ -41,7 +41,7 @@ func TestLogoutHandler(t *testing.T) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	secretString := os.Getenv("JWT_KEY")
+	secretString := os.Getenv(consts.JWT_KEY)
 
 	accesstoken, errGenAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, testClaims).SignedString([]byte(secretString))
 	if errGenAccess != nil {

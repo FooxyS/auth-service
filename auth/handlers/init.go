@@ -50,7 +50,7 @@ func InitHandler(w http.ResponseWriter, r *http.Request) {
 	//создание id пары токенов, по которому мы сможем определить были ли они выданы вместе
 	pairid := uuid.New().String()
 
-	jwtkey, errGotEnv := services.GetFromEnv("JWT_KEY")
+	jwtkey, errGotEnv := services.GetFromEnv(consts.JWT_KEY)
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

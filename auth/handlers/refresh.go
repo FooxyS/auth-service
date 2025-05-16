@@ -42,7 +42,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//загрузка секретной строки
-	jwtkey, errGotEnv := services.GetFromEnv("JWT_KEY")
+	jwtkey, errGotEnv := services.GetFromEnv(consts.JWT_KEY)
 	if errGotEnv != nil {
 		log.Printf("error with env: %v", errGotEnv)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
