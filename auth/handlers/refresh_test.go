@@ -20,7 +20,7 @@ import (
 func TestRefreshHandler(t *testing.T) {
 	//подключаемся к тестовой БД
 	godotenv.Load()
-	dburl := os.Getenv("DATABASE_URL_TEST")
+	dburl := os.Getenv(consts.DATABASE_URL_TEST)
 	pgpool, errWithConn := pgxpool.New(context.Background(), dburl)
 	if errWithConn != nil {
 		t.Errorf("error with connecting to db: %v\n", errWithConn)

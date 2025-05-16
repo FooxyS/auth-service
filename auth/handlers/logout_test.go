@@ -24,7 +24,7 @@ func TestLogoutHandler(t *testing.T) {
 	}
 
 	//добавление в БД информации о сессии
-	dburl := os.Getenv("DATABASE_URL_TEST")
+	dburl := os.Getenv(consts.DATABASE_URL_TEST)
 
 	pgpool, errConnDB := pgxpool.New(context.Background(), dburl)
 	if errConnDB != nil {

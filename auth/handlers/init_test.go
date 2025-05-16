@@ -27,7 +27,7 @@ func TestInitHandler(t *testing.T) {
 	}
 
 	//соединене с базой данных
-	dburl := os.Getenv("DATABASE_URL_TEST")
+	dburl := os.Getenv(consts.DATABASE_URL_TEST)
 
 	pgpool, errConnDB := pgxpool.New(context.Background(), dburl)
 	if errConnDB != nil {
