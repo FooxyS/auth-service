@@ -72,6 +72,10 @@ func TestRegisterHandler(t *testing.T) {
 		t.Errorf("error with decoding json: %v\n", errDecodeData)
 		return
 	}
+	if givenAccess.Access == "" {
+		t.Error("access in body after register handler")
+		return
+	}
 
 	jwtkey, errGetEnv := services.GetFromEnv(consts.JWT_KEY)
 	if errGetEnv != nil {
