@@ -2,73 +2,81 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/auth/services"
 	"github.com/FooxyS/auth-service/pkg/consts"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//проверка хэдера авторизации
-		authBearer := r.Header.Get("Authorization")
-		if authBearer == "" {
-			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
-			return
-		}
-		authToken, errMassShort := services.ParseTokenFromHeader(authBearer)
-		if errMassShort != nil {
-			http.Error(w, "Authorization token missing", http.StatusUnauthorized)
-			return
-		}
+		pgpool := services.GetDBPoolFromContext(r)
 
-		//проверка токена на валидность и возврат userID
-		accessClaims := new(models.MyCustomClaims)
+		bearerToken := services.GetValueFromHeader(r, "Authorization")
 
-		//достаю secretString из env
-		jwtkey, errGetKey := services.GetFromEnv(consts.JWT_KEY)
-		if errGetKey != nil {
-			log.Printf("error with env: %v", errGetKey)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		errIsEmpty := services.ValidateStringNotEmpty(bearerToken)
+		if errIsEmpty != nil {
+			services.UnauthorizedResponseWithReason(w, errIsEmpty)
 			return
 		}
 
-		//парсинг JWT в структуру и проверка валидности токена
-		token, errWithParseToken := jwt.ParseWithClaims(authToken, accessClaims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jwtkey), nil
-		})
-		if errWithParseToken != nil || !token.Valid {
-			log.Printf("error with parsing JWT: %v", errWithParseToken)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		access, errParseBearer := services.ParseBearerToToken(bearerToken)
+		if errParseBearer != nil {
+			services.UnauthorizedResponseWithReason(w, errParseBearer)
 			return
 		}
 
-		//получение id из claims, user-agent, IP
-		id := accessClaims.UserID
-		userAgent := r.Header.Get("User-Agent")
+		accessClaims, token, errWithParse := services.ParseAccesstoken(access)
+		if errWithParse != nil {
+			services.UnauthorizedResponseWithReason(w, errWithParse)
+			return
+		}
 
-		/*
-			логика получения IP пользователя
-		*/
+		isValid := services.ValidateAccessToken(token)
+		if !isValid {
+			services.UnauthorizedResponseWithReason(w, apperrors.ErrInvalidToken)
+			return
+		}
 
-		/*
-			достаём нужные данные из БД по userID
-		*/
-		fmt.Println("сравниваем ", userAgent)
-		fmt.Println("сравниваем IP")
+		userSession, errGetSession := services.GetSessionByUserID(r.Context(), pgpool, accessClaims.UserID)
+		if errGetSession != nil {
+			log.Printf("error with Scan: %v\n", errGetSession)
+			services.UnauthorizedResponseWithReason(w, errGetSession)
+			return
+		}
 
-		/*
-			если что-то не сошлось отправляем ошибку авторизации
+		host, errSplitHost := services.GetClientIPFromRemoteAddr(r)
+		if errSplitHost != nil {
+			log.Printf("error with remoteAddr: %v\n", errSplitHost)
+			services.UnauthorizedResponseWithReason(w, errSplitHost)
+			return
+		}
 
-			удаляем refresh токен из БД
-		*/
+		errIP := services.CompareIP(host, userSession.IP)
+		if errIP != nil {
+			errDelete := services.DeleteUserByID(pgpool, r, accessClaims.UserID)
+			if errDelete != nil {
+				log.Printf("error with delete session (user_id=%s): %v\n", accessClaims.UserID, errDelete)
+			}
+			services.UnauthorizedResponseWithReason(w, errDelete)
+			return
+		}
+
+		agent := services.GetValueFromHeader(r, "User-Agent")
+		errAgent := services.CompareUserAgent(agent, userSession.UserAgent)
+		if errAgent != nil {
+			errDelete := services.DeleteUserByID(pgpool, r, accessClaims.UserID)
+			if errDelete != nil {
+				log.Printf("error with delete session (user_id=%s): %v\n", accessClaims.UserID, errDelete)
+			}
+			services.UnauthorizedResponseWithReason(w, errAgent)
+			return
+		}
 
 		//кладём в контекст userID, отправляем в обработчик
-		ctx := context.WithValue(r.Context(), consts.USER_ID_KEY, id)
+		ctx := context.WithValue(r.Context(), consts.USER_ID_KEY, accessClaims.UserID)
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
