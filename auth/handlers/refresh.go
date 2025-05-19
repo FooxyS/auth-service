@@ -35,7 +35,7 @@ func RefreshHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
 	}
-	authToken, errMassShort := services.ParseTokenFromHeader(authBearer)
+	authToken, errMassShort := services.ParseBearerToToken(authBearer)
 	if errMassShort != nil {
 		http.Error(w, "Authorization token missing", http.StatusUnauthorized)
 		return
