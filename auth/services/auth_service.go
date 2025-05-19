@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/FooxyS/auth-service/auth/models"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -40,7 +41,7 @@ func GenerateRefreshToken() (string, error) {
 }
 
 // используется для отделения токена от bearer
-func ParseTokenFromHeader(s string) (string, error) {
+func ParseBearerToToken(s string) (string, error) {
 	substr := strings.Split(s, " ")
 	if len(substr) < 2 {
 		return "", errors.New("massive is too short. Out of range")
@@ -119,4 +120,13 @@ func GetRefreshFromCookie(resp *httptest.ResponseRecorder, t *testing.T) string 
 	}
 
 	return refcookie.Value
+}
+
+func DeleteUserByID(pgpool *pgxpool.Pool, r *http.Request, id string) error {
+	_, errExec := pgpool.Exec(r.Context(), "DELETE FROM session_table WHERE user_id=$1", id)
+	if errExec != nil {
+		log.Printf("error with Exec(): %v\n", errExec)
+		return errExec
+	}
+	return nil
 }
