@@ -30,7 +30,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//вызывается контроллер, который парсит, валидирует, проверяет и сохраняет информацию о пользователе
-	errProccess := services.ProccessUser(r.Context(), us, postgres)
+	errProccess := services.RegisterProccess(r.Context(), us, postgres)
 
 	if errors.Is(errProccess, apperrors.ErrEmptyField) {
 		http.Error(w, "Empty Fields", http.StatusBadRequest)
@@ -43,7 +43,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if errProccess != nil {
-		log.Printf("error with ProccessUser: %v\n", errProccess)
+		log.Printf("error with RegisterProccess: %v\n", errProccess)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

@@ -19,7 +19,7 @@ func CompareRequestMethod(r *http.Request, method string) error {
 }
 
 // координирует процесс регистрации пользователя
-func ProccessUser(ctx context.Context, ud models.NewUser, db models.DBClient) error {
+func RegisterProccess(ctx context.Context, ud models.NewUser, db models.DBClient) error {
 	//валидируем данные пользователя
 	errEmpty := ud.Validate()
 	if errEmpty != nil {

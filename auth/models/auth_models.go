@@ -2,13 +2,17 @@ package models
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"io"
+	"os"
 	"time"
 
 	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -100,11 +104,24 @@ func (pg *Postgres) FromContext(ctx context.Context) *Postgres {
 	return pg
 }
 
+// возвращает данные о пользователе из БД по ID
+func (pg *Postgres) GetUserByID(ctx context.Context, id string) (*User, error) {
+	user := new(User)
+
+	errScan := pg.pgpool.QueryRow(ctx, "SELECT * FROM users WHERE user_id=$1", id).Scan(&user.ID, &user.Email, &user.Password, &user.CreationDate)
+	if errScan != nil {
+		return nil, errScan
+	}
+
+	return user, nil
+}
+
 type DBClient interface {
 	SaveUser(ctx context.Context, user UserData) error
 	DeleteByID(ctx context.Context, id string, tablename string) error
 	FindUser(ctx context.Context, email string) (string, error)
 	FromContext(ctx context.Context) *Postgres
+	GetUserByID(ctx context.Context, id string) (*User, error)
 }
 
 // структура данных пользователя для регистрации
@@ -139,9 +156,73 @@ func (ud UserData) GetEmail() string {
 	return ud.Email
 }
 
+// сравнивает пароли
+func (ud UserData) ComparePassword(user User) error {
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(ud.Password))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ud *UserData) WriteID(id string) error {
+	if id == "" {
+		return apperrors.ErrEmptyString
+	}
+	ud.UserID = id
+	return nil
+}
+
 type NewUser interface {
 	GetEmail() string
 	ParseJson(body io.Reader) error
 	Save() UserData
 	Validate() error
+	ComparePassword(User) error
+	WriteID(id string) error
+}
+
+type tokens struct {
+	access  string
+	Refresh string
+}
+
+func (t *tokens) CreateTokens(id string) error {
+	claims := MyCustomClaims{
+		UserID: id,
+		PairID: uuid.New().String(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(2 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	secret := os.Getenv(consts.JWT_KEY)
+	access, errCreateAccess := jwt.NewWithClaims(jwt.SigningMethodHS512, claims).SignedString([]byte(secret))
+	if errCreateAccess != nil {
+		return errCreateAccess
+	}
+	t.access = access
+
+	b := make([]byte, 32)
+	_, errRead := rand.Read(b)
+	if errRead != nil {
+		return errRead
+	}
+	refresh := base64.URLEncoding.EncodeToString(b)
+	t.Refresh = refresh
+	return nil
+}
+
+func (t tokens) SaveTokens(db DBClient) error {
+
+}
+
+func (t tokens) Sendtokens() {
+
+}
+
+type GenerateTokens interface {
+	CreateTokens(id string) error
+	SaveTokens() error
+	Sendtokens()
 }
