@@ -50,5 +50,10 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User successfully created"))
+	_, errWrite := w.Write([]byte("User successfully created"))
+	if errWrite != nil {
+		log.Printf("error writing response: %v\n", errWrite)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
