@@ -6,6 +6,7 @@ type UserRepository interface {
 	Exists(ctx context.Context, email string) (bool, error)
 	Save(ctx context.Context, user User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
+	FindByUserID(ctx context.Context, id string) (User, error)
 }
 
 type SessionRepository interface {
