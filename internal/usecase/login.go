@@ -8,8 +8,8 @@ import (
 type LoginUseCase struct {
 	UserRepo    domain.UserRepository
 	SessionRepo domain.SessionRepository
-	tokens      domain.TokenService
-	hasher      domain.PasswordHasher
+	Tokens      domain.TokenService
+	Hasher      domain.PasswordHasher
 }
 
 func (uc *LoginUseCase) Execute(ctx context.Context, email, password, ip, agent string) (domain.TokenPair, error) {
@@ -18,20 +18,20 @@ func (uc *LoginUseCase) Execute(ctx context.Context, email, password, ip, agent 
 		return domain.TokenPair{}, errFindByEmail
 	}
 
-	if err := uc.hasher.Compare(foundUser.PasswordHash, password); err != nil {
+	if err := uc.Hasher.Compare(foundUser.PasswordHash, password); err != nil {
 		return domain.TokenPair{}, err
 	}
 
-	pairID, errGeneratePairID := uc.tokens.GeneratePairID()
+	pairID, errGeneratePairID := uc.Tokens.GeneratePairID()
 	if errGeneratePairID != nil {
 		return domain.TokenPair{}, errGeneratePairID
 	}
 
-	access, errGenerateAccess := uc.tokens.GenerateAccessToken(foundUser.UserID, pairID)
+	access, errGenerateAccess := uc.Tokens.GenerateAccessToken(foundUser.UserID, pairID)
 	if errGenerateAccess != nil {
 		return domain.TokenPair{}, errGenerateAccess
 	}
-	refresh, refreshHash, errGenerateRefresh := uc.tokens.GenerateRefreshToken()
+	refresh, refreshHash, errGenerateRefresh := uc.Tokens.GenerateRefreshToken()
 	if errGenerateRefresh != nil {
 		return domain.TokenPair{}, errGenerateRefresh
 	}
