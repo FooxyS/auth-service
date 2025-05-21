@@ -10,7 +10,7 @@ type UserRepository interface {
 
 type SessionRepository interface {
 	Save(ctx context.Context, session Session) error
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, pairID string) error
 	UpdateSession(ctx context.Context, oldPair, pair, refreshHash string) error
 	FindByPairID(ctx context.Context, pairID string) (Session, error)
 }
