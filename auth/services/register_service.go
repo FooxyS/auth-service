@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"net/http"
 
-	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/jackc/pgx/v5"
 )

@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"log"
 	"net"
 	"net/http"
 
-	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"

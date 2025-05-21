@@ -2,10 +2,10 @@ package auth
 
 import (
 	"errors"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"log"
 	"net/http"
 
-	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/auth/models"
 	"github.com/FooxyS/auth-service/auth/services"
 )

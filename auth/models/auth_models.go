@@ -5,11 +5,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"io"
 	"os"
 	"time"
 
-	"github.com/FooxyS/auth-service/auth/apperrors"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
