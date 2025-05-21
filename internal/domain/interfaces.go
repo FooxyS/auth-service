@@ -21,3 +21,7 @@ type TokenService interface {
 	CheckPair(pair TokenPair) error
 	ValidateAccessToken(access string) (string, error)
 }
+
+type PasswordHasher interface {
+	Compare(hash, password string) error
+}

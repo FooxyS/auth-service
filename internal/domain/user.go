@@ -5,10 +5,3 @@ type User struct {
 	Email        string
 	PasswordHash string
 }
-
-func (u User) CheckPassword(password string) bool {
-	if password == u.PasswordHash {
-		return true
-	}
-	return false
-}
