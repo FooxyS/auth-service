@@ -30,7 +30,7 @@ func (ru RefreshUseCase) Execute(ctx context.Context, access, refresh, ip, agent
 		return domain.TokenPair{}, apperrors.ErrIPMismatch
 	}
 	if agent != session.UserAgent {
-		if err := ru.SessionRepo.Delete(ctx, userID); err != nil {
+		if err := ru.SessionRepo.Delete(ctx, pairID); err != nil {
 			log.Printf("error with deleting session: %v", err)
 			return domain.TokenPair{}, err
 		}
