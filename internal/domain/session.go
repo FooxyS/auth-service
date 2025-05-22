@@ -7,7 +7,3 @@ type Session struct {
 	PairID      string
 	UserAgent   string
 }
-
-func (s Session) CheckSession(ip, refresh, pair, agent string) bool {
-	return ip == s.IPAddress && refresh == s.RefreshHash && pair == s.PairID && agent == s.UserAgent
-}
