@@ -10,6 +10,7 @@ import (
 var (
 	ErrExists         = errors.New("error while checking existence of user")
 	ErrSave           = errors.New("error while saving")
+	ErrDelete         = errors.New("error while deleting")
 	ErrGenAccess      = errors.New("error while generating access token")
 	ErrValidateAccess = errors.New("error while validating access token")
 	ErrGenRefresh     = errors.New("error while generating refresh token")
@@ -65,8 +66,11 @@ func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domai
 }
 
 type MockSessionRepository struct {
-	SavedSession domain.Session
-	SaveFail     bool
+	SavedSession     domain.Session
+	DeletedSession   domain.Session
+	SessionForDelete domain.Session
+	DeleteFail       bool
+	SaveFail         bool
 }
 
 func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session) error {
@@ -78,8 +82,11 @@ func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session
 }
 
 func (m *MockSessionRepository) Delete(ctx context.Context, pairID string) error {
-	//TODO implement me
-	panic("implement me")
+	if m.DeleteFail {
+		return ErrDelete
+	}
+	m.DeletedSession = m.SessionForDelete
+	return nil
 }
 
 func (m *MockSessionRepository) UpdateSession(ctx context.Context, oldPair, pair, refreshHash string) error {
