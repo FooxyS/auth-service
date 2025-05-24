@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/FooxyS/auth-service/internal/domain"
 )
 
@@ -29,6 +28,8 @@ type MockUserRepository struct {
 	ExistsFail       bool
 	SaveFail         bool
 	FindByUserIDFail bool
+	FindByEmailFail  bool
+	CalledSlice      *[]string
 }
 
 func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, error) {
@@ -40,6 +41,8 @@ func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, er
 		return true, nil
 	}
 
+	*m.CalledSlice = append(*m.CalledSlice, "Exists")
+
 	return false, nil
 }
 
@@ -48,20 +51,29 @@ func (m *MockUserRepository) Save(ctx context.Context, user domain.User) error {
 		return ErrSave
 	}
 	m.savedUser = user
+
+	*m.CalledSlice = append(*m.CalledSlice, "Save")
+
 	return nil
 }
 
 func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
-	if m.user.Email == email {
-		return m.user, nil
+	if m.FindByEmailFail {
+		return domain.User{}, ErrFind
 	}
-	return domain.User{}, nil
+
+	*m.CalledSlice = append(*m.CalledSlice, "FindByEmail")
+
+	return m.existingUser, nil
 }
 
 func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domain.User, error) {
 	if m.FindByUserIDFail {
 		return domain.User{}, ErrFind
 	}
+
+	*m.CalledSlice = append(*m.CalledSlice, "FindByUserID")
+
 	return m.user, nil
 }
 
@@ -71,6 +83,7 @@ type MockSessionRepository struct {
 	SessionForDelete domain.Session
 	DeleteFail       bool
 	SaveFail         bool
+	CalledSlice      *[]string
 }
 
 func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session) error {
@@ -78,6 +91,9 @@ func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session
 		return ErrSave
 	}
 	m.SavedSession = session
+
+	*m.CalledSlice = append(*m.CalledSlice, "Save")
+
 	return nil
 }
 
@@ -86,6 +102,9 @@ func (m *MockSessionRepository) Delete(ctx context.Context, pairID string) error
 		return ErrDelete
 	}
 	m.DeletedSession = m.SessionForDelete
+
+	*m.CalledSlice = append(*m.CalledSlice, "Delete")
+
 	return nil
 }
 
@@ -106,44 +125,60 @@ type MockTokenService struct {
 	GenerateRefreshTokenFail bool
 	GeneratePairIDFail       bool
 	ValidateAccessTokenFail  bool
+	CalledSlice              *[]string
 }
 
 func (m MockTokenService) GenerateAccessToken(id string, pairID string) (string, error) {
 	if m.GenerateAccessTokenFail {
 		return "", ErrGenAccess
 	}
-	access := fmt.Sprintf("access_token_%s_%s", id, pairID)
-	return access, nil
+
+	*m.CalledSlice = append(*m.CalledSlice, "GenerateAccessToken")
+
+	return "some access token", nil
 }
 
 func (m MockTokenService) GenerateRefreshToken() (string, string, error) {
 	if m.GenerateRefreshTokenFail {
 		return "", "", ErrGenRefresh
 	}
-	return "refresh_token", "refresh_token_hash", nil
+
+	*m.CalledSlice = append(*m.CalledSlice, "GenerateRefreshToken")
+
+	return "some refresh token", "some refresh token hash", nil
 }
 
 func (m MockTokenService) GeneratePairID() (string, error) {
 	if m.GeneratePairIDFail {
 		return "", ErrGenPairID
 	}
-	return "pair_id", nil
+
+	*m.CalledSlice = append(*m.CalledSlice, "GeneratePairID")
+
+	return "some new pairID", nil
 }
 
 func (m MockTokenService) ValidateAccessToken(access string) (string, string, error) {
 	if m.ValidateAccessTokenFail {
 		return "", "", ErrValidateAccess
 	}
+
+	*m.CalledSlice = append(*m.CalledSlice, "ValidateAccessToken")
+
 	return m.userID, m.PairID, nil
 }
 
 type MockPasswordHasher struct {
 	CompareFail bool
+	CalledSlice *[]string
 }
 
 func (m MockPasswordHasher) Compare(hash, password string) error {
 	if m.CompareFail {
 		return ErrCompare
 	}
+
+	*m.CalledSlice = append(*m.CalledSlice, "Compare")
+
 	return nil
 }
