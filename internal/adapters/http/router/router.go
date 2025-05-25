@@ -8,13 +8,13 @@ import (
 	"github.com/FooxyS/auth-service/internal/usecase"
 )
 
-func SetupRouter(UserRepo domain.UserRepository, SessionRepo domain.SessionRepository, Tokens domain.TokenService, Hasher domain.PasswordHasher) http.Handler {
+func SetupRouter(userRepo domain.UserRepository, sessionRepo domain.SessionRepository, tokens domain.TokenService, hasher domain.PasswordHasher) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("/register", &handler.RegisterHandler{UseCase: usecase.RegisterUseCase{UserRepo: UserRepo, Hasher: Hasher}})
-	mux.Handle("/login", &handler.LoginHandler{UseCase: usecase.LoginUseCase{UserRepo: UserRepo, SessionRepo: SessionRepo, Tokens: Tokens, Hasher: Hasher}})
-	mux.Handle("/logout", &handler.LogoutHandler{UseCase: usecase.LogoutUseCase{SessionRepo: SessionRepo, Tokens: Tokens}})
-	mux.Handle("/refresh", &handler.RefreshHandler{UseCase: usecase.RefreshUseCase{Tokens: Tokens, SessionRepo: SessionRepo, Hasher: Hasher}})
-	mux.Handle("/me", &handler.MeHandler{UseCase: usecase.MeUseCase{Tokens: Tokens, UserRepo: UserRepo}})
+	mux.Handle("/register", &handler.RegisterHandler{UseCase: usecase.RegisterUseCase{UserRepo: userRepo, Hasher: hasher}})
+	mux.Handle("/login", &handler.LoginHandler{UseCase: usecase.LoginUseCase{UserRepo: userRepo, SessionRepo: sessionRepo, Tokens: tokens, Hasher: hasher}})
+	mux.Handle("/logout", &handler.LogoutHandler{UseCase: usecase.LogoutUseCase{SessionRepo: sessionRepo, Tokens: tokens}})
+	mux.Handle("/refresh", &handler.RefreshHandler{UseCase: usecase.RefreshUseCase{Tokens: tokens, SessionRepo: sessionRepo, Hasher: hasher}})
+	mux.Handle("/me", &handler.MeHandler{UseCase: usecase.MeUseCase{Tokens: tokens, UserRepo: userRepo}})
 
 	return mux
 }
