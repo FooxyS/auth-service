@@ -7,6 +7,7 @@ type UserRepository interface {
 	Save(ctx context.Context, user User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
 	FindByUserID(ctx context.Context, id string) (User, error)
+	GenerateUserID() (string, error)
 }
 
 type SessionRepository interface {
@@ -25,4 +26,5 @@ type TokenService interface {
 
 type PasswordHasher interface {
 	Compare(hash, password string) error
+	Hash(password string) ([]byte, error)
 }
