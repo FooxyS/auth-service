@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/FooxyS/auth-service/internal/usecase"
+	"github.com/FooxyS/auth-service/pkg/consts"
 )
 
 type LoginHandler struct {
@@ -41,10 +42,12 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie := &http.Cookie{
-		Name:     "refresh-token",
+		Name:     consts.RefreshCookieName,
 		Value:    tokens.RefreshToken,
 		Expires:  time.Now().Add(30 * 24 * time.Hour),
+		Secure:   true,
 		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
 	}
 
 	http.SetCookie(w, cookie)
