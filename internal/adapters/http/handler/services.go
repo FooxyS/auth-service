@@ -18,10 +18,9 @@ func WriteJSON(w http.ResponseWriter, code int, message string) {
 	}
 }
 
-func WriteLoginJSON(w http.ResponseWriter, code int, access, refresh string) {
+func WriteLoginJSON(w http.ResponseWriter, code int, access string) {
 	resp := LoginResponse{
-		Access:  access,
-		Refresh: refresh,
+		Access: access,
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

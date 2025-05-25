@@ -15,6 +15,5 @@ type MessageResponse struct {
 }
 
 type LoginResponse struct {
-	Access  string `json:"access"`
-	Refresh string `json:"refresh"`
+	Access string `json:"access"`
 }
