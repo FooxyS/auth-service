@@ -19,7 +19,7 @@ func WriteJSON(w http.ResponseWriter, code int, message string) {
 }
 
 func WriteLoginJSON(w http.ResponseWriter, code int, access string) {
-	resp := LoginResponse{
+	resp := TokenResponse{
 		Access: access,
 	}
 
