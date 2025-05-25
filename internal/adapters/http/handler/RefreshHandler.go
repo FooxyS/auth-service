@@ -36,6 +36,11 @@ func (h *RefreshHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	agent := r.Header.Get("User-Agent")
 
+	if access == "" || refresh == "" || host == "" || agent == "" {
+		WriteJSON(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+
 	tokens, errExecute := h.UseCase.Execute(r.Context(), access, refresh, host, agent)
 
 	if errors.Is(errExecute, apperrors.ErrIPMismatch) {

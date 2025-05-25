@@ -14,6 +14,11 @@ type MeHandler struct {
 func (h *MeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	access := r.Header.Get("Authorization")
 
+	if access == "" {
+		WriteJSON(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+
 	user, errMeExecute := h.UseCase.Execute(r.Context(), access)
 	if errMeExecute != nil {
 		log.Printf("Execute error: %v", errMeExecute)

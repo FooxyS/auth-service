@@ -23,6 +23,11 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if userInfo.Email == "" || userInfo.Password == "" {
+		WriteJSON(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+
 	errExecute := h.UseCase.Execute(r.Context(), userInfo.Email, userInfo.Password)
 	if errors.Is(errExecute, apperrors.ErrUserExists) {
 		WriteJSON(w, http.StatusConflict, "User Already Exists")

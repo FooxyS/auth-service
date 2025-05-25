@@ -33,6 +33,11 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	agent := r.Header.Get("User-Agent")
 
+	if userInfo.Email == "" || userInfo.Password == "" || host == "" || agent == "" {
+		WriteJSON(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+
 	tokens, errExecute := h.UseCase.Execute(r.Context(), userInfo.Email, userInfo.Password, host, agent)
 
 	if errExecute != nil {
