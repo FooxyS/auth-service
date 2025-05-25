@@ -14,6 +14,6 @@ type MessageResponse struct {
 	Message string `json:"message"`
 }
 
-type LoginResponse struct {
+type TokenResponse struct {
 	Access string `json:"access"`
 }
