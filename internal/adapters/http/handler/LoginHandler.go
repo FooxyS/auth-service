@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/FooxyS/auth-service/internal/usecase"
 )
@@ -39,5 +40,14 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	WriteLoginJSON(w, http.StatusOK, tokens.AccessToken, tokens.RefreshToken)
+	cookie := &http.Cookie{
+		Name:     "refresh-token",
+		Value:    tokens.RefreshToken,
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
+		HttpOnly: true,
+	}
+
+	http.SetCookie(w, cookie)
+
+	WriteLoginJSON(w, http.StatusOK, tokens.AccessToken)
 }
