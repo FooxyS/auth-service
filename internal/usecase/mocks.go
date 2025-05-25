@@ -16,6 +16,7 @@ var (
 	ErrGenPairID      = errors.New("error while generating pair id")
 	ErrCompare        = errors.New("error while compare")
 	ErrFind           = errors.New("error while find")
+	ErrUpdate         = errors.New("error while updating")
 )
 
 type MockUserRepository struct {
@@ -29,6 +30,7 @@ type MockUserRepository struct {
 	SaveFail         bool
 	FindByUserIDFail bool
 	FindByEmailFail  bool
+	CalledNeed       bool
 	CalledSlice      *[]string
 }
 
@@ -41,7 +43,9 @@ func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, er
 		return true, nil
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "Exists")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "Exists")
+	}
 
 	return false, nil
 }
@@ -52,9 +56,12 @@ func (m *MockUserRepository) Save(ctx context.Context, user domain.User) error {
 	}
 	m.savedUser = user
 
-	*m.CalledSlice = append(*m.CalledSlice, "Save")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "Save")
+	}
 
 	return nil
+
 }
 
 func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
@@ -62,9 +69,12 @@ func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (dom
 		return domain.User{}, ErrFind
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "FindByEmail")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "FindByEmail")
+	}
 
 	return m.existingUser, nil
+
 }
 
 func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domain.User, error) {
@@ -72,18 +82,25 @@ func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domai
 		return domain.User{}, ErrFind
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "FindByUserID")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "FindByUserID")
+	}
 
 	return m.user, nil
 }
 
 type MockSessionRepository struct {
-	SavedSession     domain.Session
-	DeletedSession   domain.Session
-	SessionForDelete domain.Session
-	DeleteFail       bool
-	SaveFail         bool
-	CalledSlice      *[]string
+	SavedSession      domain.Session
+	UpdatedSession    domain.Session
+	Session           domain.Session
+	DeletedSession    domain.Session
+	SessionForDelete  domain.Session
+	UpdateSessionFail bool
+	DeleteFail        bool
+	SaveFail          bool
+	FindByPairIDFail  bool
+	CalledNeed        bool
+	CalledSlice       *[]string
 }
 
 func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session) error {
@@ -92,9 +109,12 @@ func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session
 	}
 	m.SavedSession = session
 
-	*m.CalledSlice = append(*m.CalledSlice, "Save")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "Save")
+	}
 
 	return nil
+
 }
 
 func (m *MockSessionRepository) Delete(ctx context.Context, pairID string) error {
@@ -103,19 +123,40 @@ func (m *MockSessionRepository) Delete(ctx context.Context, pairID string) error
 	}
 	m.DeletedSession = m.SessionForDelete
 
-	*m.CalledSlice = append(*m.CalledSlice, "Delete")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "Delete")
+	}
+
+	return nil
+
+}
+
+func (m *MockSessionRepository) UpdateSession(ctx context.Context, oldPair, pair, refreshHash string) error {
+	if m.UpdateSessionFail {
+		return ErrUpdate
+	}
+	m.UpdatedSession = m.Session
+
+	m.UpdatedSession.PairID = pair
+	m.UpdatedSession.RefreshHash = refreshHash
+
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "UpdateSession")
+	}
 
 	return nil
 }
 
-func (m *MockSessionRepository) UpdateSession(ctx context.Context, oldPair, pair, refreshHash string) error {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (m *MockSessionRepository) FindByPairID(ctx context.Context, pairID string) (domain.Session, error) {
-	//TODO implement me
-	panic("implement me")
+	if m.FindByPairIDFail {
+		return domain.Session{}, ErrFind
+	}
+
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "FindByPairID")
+	}
+
+	return m.Session, nil
 }
 
 type MockTokenService struct {
@@ -125,6 +166,7 @@ type MockTokenService struct {
 	GenerateRefreshTokenFail bool
 	GeneratePairIDFail       bool
 	ValidateAccessTokenFail  bool
+	CalledNeed               bool
 	CalledSlice              *[]string
 }
 
@@ -133,7 +175,9 @@ func (m MockTokenService) GenerateAccessToken(id string, pairID string) (string,
 		return "", ErrGenAccess
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "GenerateAccessToken")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "GenerateAccessToken")
+	}
 
 	return "some access token", nil
 }
@@ -143,7 +187,9 @@ func (m MockTokenService) GenerateRefreshToken() (string, string, error) {
 		return "", "", ErrGenRefresh
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "GenerateRefreshToken")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "GenerateRefreshToken")
+	}
 
 	return "some refresh token", "some refresh token hash", nil
 }
@@ -153,7 +199,9 @@ func (m MockTokenService) GeneratePairID() (string, error) {
 		return "", ErrGenPairID
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "GeneratePairID")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "GeneratePairID")
+	}
 
 	return "some new pairID", nil
 }
@@ -163,13 +211,16 @@ func (m MockTokenService) ValidateAccessToken(access string) (string, string, er
 		return "", "", ErrValidateAccess
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "ValidateAccessToken")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "ValidateAccessToken")
+	}
 
 	return m.userID, m.PairID, nil
 }
 
 type MockPasswordHasher struct {
 	CompareFail bool
+	CalledNeed  bool
 	CalledSlice *[]string
 }
 
@@ -178,7 +229,9 @@ func (m MockPasswordHasher) Compare(hash, password string) error {
 		return ErrCompare
 	}
 
-	*m.CalledSlice = append(*m.CalledSlice, "Compare")
+	if m.CalledNeed {
+		*m.CalledSlice = append(*m.CalledSlice, "Compare")
+	}
 
 	return nil
 }
