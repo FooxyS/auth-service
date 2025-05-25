@@ -14,18 +14,22 @@ func TestMeUseCase_Execute(t *testing.T) {
 		PasswordHash: "TheBestProgrammer",
 	}
 
+	CalledSlice := new([]string)
+
+	expectedSlice := []string{"ValidateAccessToken", "FindByUserID"}
+
 	tables := []struct {
 		Name        string
 		Input       string
-		Tokens      domain.TokenService
-		UserRepo    domain.UserRepository
+		Tokens      *MockTokenService
+		UserRepo    *MockUserRepository
 		WantedUser  domain.User
 		WantedError error
 	}{
 		{
 			Name:  "ValidateAccess() fails",
 			Input: "some access token",
-			Tokens: MockTokenService{
+			Tokens: &MockTokenService{
 				userID:                  "12345",
 				PairID:                  "76913857",
 				ValidateAccessTokenFail: true,
@@ -37,7 +41,7 @@ func TestMeUseCase_Execute(t *testing.T) {
 		{
 			Name:  "FindByUserID() fails",
 			Input: "some access token",
-			Tokens: MockTokenService{
+			Tokens: &MockTokenService{
 				userID: "12345",
 				PairID: "76913857",
 			},
@@ -51,12 +55,16 @@ func TestMeUseCase_Execute(t *testing.T) {
 		{
 			Name:  "success",
 			Input: "some access token",
-			Tokens: MockTokenService{
-				userID: "12345",
-				PairID: "76913857",
+			Tokens: &MockTokenService{
+				userID:      "12345",
+				PairID:      "76913857",
+				CalledNeed:  true,
+				CalledSlice: CalledSlice,
 			},
 			UserRepo: &MockUserRepository{
-				user: expectedUser,
+				user:        expectedUser,
+				CalledNeed:  true,
+				CalledSlice: CalledSlice,
 			},
 			WantedUser:  expectedUser,
 			WantedError: nil,
@@ -71,7 +79,11 @@ func TestMeUseCase_Execute(t *testing.T) {
 
 			assert.ErrorIs(t, err, table.WantedError)
 
-			assert.Equal(t, table.WantedUser, user)
+			if table.WantedError == nil {
+				assert.Equal(t, user, table.WantedUser)
+
+				assert.Equal(t, expectedSlice, *CalledSlice)
+			}
 		})
 	}
 }

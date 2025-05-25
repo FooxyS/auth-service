@@ -9,80 +9,83 @@ import (
 )
 
 func TestRegisterUseCase_Execute(t *testing.T) {
-	existUser := domain.User{
-		UserID:       "4321",
-		Email:        "Arthur@gmail.com",
-		PasswordHash: "rdr2",
+	input := struct {
+		user domain.User
+	}{
+		user: domain.User{
+			UserID:       "123",
+			Email:        "Tim@gmail.com",
+			PasswordHash: "some password token hash",
+		},
 	}
 
-	notExistUser := domain.User{
-		UserID:       "1234",
+	userInRepo := domain.User{
+		UserID:       "123",
 		Email:        "Tim@gmail.com",
-		PasswordHash: "qwerty12345",
+		PasswordHash: "some password token hash",
 	}
+
+	CalledSlice := new([]string)
+
+	expectedSlice := []string{"Exists", "Save"}
 
 	tables := []struct {
-		name         string
-		mockUserRepo *MockUserRepository
-		user         domain.User
-		wantErr      error
+		Name       string
+		UserRepo   *MockUserRepository
+		WantedUser domain.User
+		WantErr    error
 	}{
 		{
-			name: "success",
-			mockUserRepo: &MockUserRepository{
-				existingUser: existUser,
-				ExistsFail:   false,
-				SaveFail:     false,
-			},
-			user:    notExistUser,
-			wantErr: nil,
-		},
-		{
-			name: "user exists",
-			mockUserRepo: &MockUserRepository{
-				existingUser: existUser,
-				ExistsFail:   false,
-				SaveFail:     false,
-			},
-			user:    existUser,
-			wantErr: apperrors.ErrUserExists,
-		},
-		{
-			name: "exists fail",
-			mockUserRepo: &MockUserRepository{
-				existingUser: existUser,
+			Name: "Exists fails",
+			UserRepo: &MockUserRepository{
+				existingUser: userInRepo,
 				ExistsFail:   true,
-				SaveFail:     false,
 			},
-			wantErr: ErrExists,
+			WantErr: ErrExists,
 		},
 		{
-			name: "save fail",
-			mockUserRepo: &MockUserRepository{
-				existingUser: existUser,
-				ExistsFail:   false,
+			Name: "user already exists",
+			UserRepo: &MockUserRepository{
+				existingUser: userInRepo,
+			},
+			WantedUser: domain.User{},
+			WantErr:    apperrors.ErrUserExists,
+		},
+		{
+			Name: "Save fails",
+			UserRepo: &MockUserRepository{
+				existingUser: domain.User{},
 				SaveFail:     true,
 			},
-			wantErr: ErrSave,
+			WantedUser: userInRepo,
+			WantErr:    ErrSave,
+		},
+		{
+			Name: "happy path",
+			UserRepo: &MockUserRepository{
+				CalledNeed:  true,
+				CalledSlice: CalledSlice,
+			},
+			WantedUser: userInRepo,
+			WantErr:    nil,
 		},
 	}
 
 	for _, table := range tables {
-		t.Run(table.name, func(t *testing.T) {
-			useCase := RegisterUseCase{UserRepo: table.mockUserRepo}
-
-			err := useCase.Execute(context.Background(), table.user)
-
-			if !assert.ErrorIs(t, err, table.wantErr) {
-				t.Errorf("Execute() error = %v, wantErr %v", err, table.wantErr)
+		t.Run(table.Name, func(t *testing.T) {
+			useCase := RegisterUseCase{
+				UserRepo: table.UserRepo,
 			}
 
-			if table.wantErr == nil {
-				if !assert.Equal(t, table.user, table.mockUserRepo.savedUser) {
-					t.Errorf("got %v, want %v", table.mockUserRepo.savedUser, table.user)
-				}
+			err := useCase.Execute(context.Background(), input.user)
+
+			assert.ErrorIs(t, err, table.WantErr)
+
+			if table.WantErr == nil {
+				assert.Equal(t, table.WantedUser, table.UserRepo.savedUser)
+
+				assert.Equal(t, expectedSlice, *CalledSlice)
 			}
 		})
 	}
-
 }

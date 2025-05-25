@@ -68,14 +68,8 @@ func TestLoginUseCase_Execute(t *testing.T) {
 			UserRepo: &MockUserRepository{
 				existingUser: userInRepo,
 			},
-			SessionRepo: &MockSessionRepository{
-				SavedSession:     domain.Session{},
-				DeletedSession:   domain.Session{},
-				SessionForDelete: domain.Session{},
-				DeleteFail:       false,
-				SaveFail:         false,
-			},
-			Tokens: MockTokenService{},
+			SessionRepo: &MockSessionRepository{},
+			Tokens:      MockTokenService{},
 			Hasher: MockPasswordHasher{
 				CompareFail: true,
 			},
@@ -87,13 +81,7 @@ func TestLoginUseCase_Execute(t *testing.T) {
 			UserRepo: &MockUserRepository{
 				existingUser: userInRepo,
 			},
-			SessionRepo: &MockSessionRepository{
-				SavedSession:     domain.Session{},
-				DeletedSession:   domain.Session{},
-				SessionForDelete: domain.Session{},
-				DeleteFail:       false,
-				SaveFail:         false,
-			},
+			SessionRepo: &MockSessionRepository{},
 			Tokens: MockTokenService{
 				GeneratePairIDFail: true,
 			},
@@ -144,15 +132,19 @@ func TestLoginUseCase_Execute(t *testing.T) {
 			Name: "happy path",
 			UserRepo: &MockUserRepository{
 				existingUser: userInRepo,
+				CalledNeed:   true,
 				CalledSlice:  CalledSlice,
 			},
 			SessionRepo: &MockSessionRepository{
+				CalledNeed:  true,
 				CalledSlice: CalledSlice,
 			},
 			Tokens: MockTokenService{
+				CalledNeed:  true,
 				CalledSlice: CalledSlice,
 			},
 			Hasher: MockPasswordHasher{
+				CalledNeed:  true,
 				CalledSlice: CalledSlice,
 			},
 			WantedTokenPair: domain.TokenPair{},

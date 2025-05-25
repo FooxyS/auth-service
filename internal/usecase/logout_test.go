@@ -17,16 +17,20 @@ func TestLogoutUseCase_Execute(t *testing.T) {
 		UserAgent:   "some user agent",
 	}
 
+	calledSlice := new([]string)
+
+	expectedSlice := []string{"ValidateAccessToken", "Delete"}
+
 	tables := []struct {
 		Name          string
-		Tokens        MockTokenService
+		Tokens        *MockTokenService
 		SessionRepo   *MockSessionRepository
 		WantedSession domain.Session
 		WantedErr     error
 	}{
 		{
 			Name: "Validate fails",
-			Tokens: MockTokenService{
+			Tokens: &MockTokenService{
 				PairID:                  "123",
 				ValidateAccessTokenFail: true,
 			},
@@ -38,7 +42,7 @@ func TestLogoutUseCase_Execute(t *testing.T) {
 		},
 		{
 			Name: "Delete fails",
-			Tokens: MockTokenService{
+			Tokens: &MockTokenService{
 				PairID: "123",
 			},
 			SessionRepo: &MockSessionRepository{
@@ -49,12 +53,16 @@ func TestLogoutUseCase_Execute(t *testing.T) {
 			WantedErr:     ErrDelete,
 		},
 		{
-			Name: "success",
-			Tokens: MockTokenService{
-				PairID: "123",
+			Name: "happy path",
+			Tokens: &MockTokenService{
+				PairID:      "123",
+				CalledNeed:  true,
+				CalledSlice: calledSlice,
 			},
 			SessionRepo: &MockSessionRepository{
 				SessionForDelete: sessionInRepo,
+				CalledNeed:       true,
+				CalledSlice:      calledSlice,
 			},
 			WantedSession: sessionInRepo,
 			WantedErr:     nil,
@@ -74,6 +82,8 @@ func TestLogoutUseCase_Execute(t *testing.T) {
 
 			if table.WantedErr == nil {
 				assert.Equal(t, table.WantedSession, table.SessionRepo.DeletedSession)
+
+				assert.Equal(t, expectedSlice, *calledSlice)
 			}
 		})
 	}
