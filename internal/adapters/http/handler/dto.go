@@ -17,3 +17,8 @@ type MessageResponse struct {
 type TokenResponse struct {
 	Access string `json:"access"`
 }
+
+type MeResponse struct {
+	UserID string `json:"userid"`
+	Email  string `json:"email"`
+}
