@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+
 	"github.com/FooxyS/auth-service/internal/domain"
 )
 
@@ -14,6 +15,7 @@ var (
 	ErrValidateAccess = errors.New("error while validating access token")
 	ErrGenRefresh     = errors.New("error while generating refresh token")
 	ErrGenPairID      = errors.New("error while generating pair id")
+	ErrGenUserID      = errors.New("error while generating user id")
 	ErrCompare        = errors.New("error while compare")
 	ErrFind           = errors.New("error while find")
 	ErrUpdate         = errors.New("error while updating")
@@ -24,14 +26,15 @@ type MockUserRepository struct {
 	user domain.User
 
 	//для registerUseCase
-	existingUser     domain.User
-	savedUser        domain.User
-	ExistsFail       bool
-	SaveFail         bool
-	FindByUserIDFail bool
-	FindByEmailFail  bool
-	CalledNeed       bool
-	CalledSlice      *[]string
+	existingUser       domain.User
+	savedUser          domain.User
+	ExistsFail         bool
+	SaveFail           bool
+	FindByUserIDFail   bool
+	FindByEmailFail    bool
+	CalledNeed         bool
+	GenerateUserIDFail bool
+	CalledSlice        *[]string
 }
 
 func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, error) {
@@ -87,6 +90,13 @@ func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domai
 	}
 
 	return m.user, nil
+}
+
+func (m *MockUserRepository) GenerateUserID() (string, error) {
+	if m.GenerateUserIDFail {
+		return "", ErrGenUserID
+	}
+	return "some new userID", nil
 }
 
 type MockSessionRepository struct {
@@ -220,6 +230,7 @@ func (m MockTokenService) ValidateAccessToken(access string) (string, string, er
 
 type MockPasswordHasher struct {
 	CompareFail bool
+	HashFail    bool
 	CalledNeed  bool
 	CalledSlice *[]string
 }
@@ -234,4 +245,11 @@ func (m MockPasswordHasher) Compare(hash, password string) error {
 	}
 
 	return nil
+}
+
+func (m MockPasswordHasher) Hash(password string) ([]byte, error) {
+	if m.HashFail {
+		return nil, errors.New("hash error")
+	}
+	return []byte("some password hash"), nil
 }
