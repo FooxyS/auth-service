@@ -26,5 +26,5 @@ type TokenService interface {
 
 type PasswordHasher interface {
 	Compare(hash, password string) error
-	Hash(password string) ([]byte, error)
+	Hash(password string) (string, error)
 }
