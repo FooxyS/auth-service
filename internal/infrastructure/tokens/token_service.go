@@ -6,12 +6,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/FooxyS/auth-service/internal/domain"
 	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func New() domain.TokenService {
+	return &JWTService{}
+}
 
 type MyCustomClaims struct {
 	UserID string
