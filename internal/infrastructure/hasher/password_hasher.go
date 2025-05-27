@@ -1,8 +1,13 @@
 package hasher
 
 import (
+	"github.com/FooxyS/auth-service/internal/domain"
 	"golang.org/x/crypto/bcrypt"
 )
+
+func New() domain.PasswordHasher {
+	return &BcryptHasher{}
+}
 
 type BcryptHasher struct {
 }
