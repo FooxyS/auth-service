@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+
 	"github.com/FooxyS/auth-service/internal/domain"
 	"github.com/FooxyS/auth-service/pkg/apperrors"
 )
@@ -15,8 +16,7 @@ func (ru RegisterUseCase) Execute(ctx context.Context, email, password string) e
 	exist, errExists := ru.UserRepo.Exists(ctx, email)
 	if errExists != nil {
 		return errExists
-	}
-	if exist {
+	} else if exist {
 		return apperrors.ErrUserExists
 	}
 
