@@ -2,23 +2,34 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/FooxyS/auth-service/internal/domain"
-	"github.com/FooxyS/auth-service/pkg/consts"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+func New(DB *pgxpool.Pool) domain.UserRepository {
+
+	return &UserPostgres{DB: DB}
+}
+
 type UserPostgres struct {
+	DB *pgxpool.Pool
 }
 
 func (u *UserPostgres) Exists(ctx context.Context, email string) (bool, error) {
-	pgpool := ctx.Value(consts.CTX_KEY_DB).(*pgxpool.Pool)
-
 	var userID string
 
-	if err := pgpool.QueryRow(ctx, "SELECT user_id FROM users WHERE email=$1", email).Scan(&userID); err != nil {
+	err := u.DB.QueryRow(ctx, "SELECT user_id FROM users WHERE email=$1", email).Scan(&userID)
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+
+	if err != nil {
 		return false, err
 	}
 
@@ -26,9 +37,7 @@ func (u *UserPostgres) Exists(ctx context.Context, email string) (bool, error) {
 }
 
 func (u *UserPostgres) Save(ctx context.Context, user domain.User) error {
-	pgpool := ctx.Value(consts.CTX_KEY_DB).(*pgxpool.Pool)
-
-	_, err := pgpool.Exec(ctx, "INSERT INTO users (user_id, email, password, creation_date) VALUES ($1, $2, $3, $4)", user.UserID, user.Email, user.PasswordHash, time.Now())
+	_, err := u.DB.Exec(ctx, "INSERT INTO users (user_id, email, password, creation_date) VALUES ($1, $2, $3, $4)", user.UserID, user.Email, user.PasswordHash, time.Now())
 	if err != nil {
 		return err
 	}
@@ -36,11 +45,9 @@ func (u *UserPostgres) Save(ctx context.Context, user domain.User) error {
 }
 
 func (u *UserPostgres) FindByEmail(ctx context.Context, email string) (domain.User, error) {
-	pgpool := ctx.Value(consts.CTX_KEY_DB).(*pgxpool.Pool)
-
 	var user domain.User
 
-	err := pgpool.QueryRow(ctx, "SELECT * FROM users WHERE email=$1", email).Scan(&user)
+	err := u.DB.QueryRow(ctx, "SELECT * FROM users WHERE email=$1", email).Scan(&user.UserID, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -48,11 +55,9 @@ func (u *UserPostgres) FindByEmail(ctx context.Context, email string) (domain.Us
 }
 
 func (u *UserPostgres) FindByUserID(ctx context.Context, id string) (domain.User, error) {
-	pgpool := ctx.Value(consts.CTX_KEY_DB).(*pgxpool.Pool)
-
 	var user domain.User
 
-	err := pgpool.QueryRow(ctx, "SELECT * FROM users WHERE email=$1", id).Scan(&user)
+	err := u.DB.QueryRow(ctx, "SELECT * FROM users WHERE user_id=$1", id).Scan(&user.UserID, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return domain.User{}, err
 	}
