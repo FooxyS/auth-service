@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/FooxyS/auth-service/internal/usecase"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 )
 
 type LogoutHandler struct {
@@ -19,7 +21,12 @@ func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if errLogoutExecute := h.UseCase.Execute(r.Context(), access); errLogoutExecute != nil {
+	errLogoutExecute := h.UseCase.Execute(r.Context(), access)
+	if errors.Is(errLogoutExecute, apperrors.ErrSessionNotFound) {
+		WriteJSON(w, http.StatusBadRequest, "session was not deleted")
+		return
+	}
+	if errLogoutExecute != nil {
 		log.Printf("Execute error: %v", errLogoutExecute)
 		WriteJSON(w, http.StatusInternalServerError, "Internal Server Error")
 		return
