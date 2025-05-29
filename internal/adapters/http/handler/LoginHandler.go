@@ -2,12 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/FooxyS/auth-service/internal/usecase"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"github.com/FooxyS/auth-service/pkg/consts"
 )
 
@@ -40,7 +42,10 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	tokens, errExecute := h.UseCase.Execute(r.Context(), userInfo.Email, userInfo.Password, host, agent)
 
-	if errExecute != nil {
+	if errors.Is(errExecute, apperrors.ErrPasswordMismatch) {
+		WriteJSON(w, http.StatusBadRequest, "wrong password")
+		return
+	} else if errExecute != nil {
 		log.Printf("Execute error: %v", errExecute)
 		WriteJSON(w, http.StatusInternalServerError, "Internal Server Error")
 		return
