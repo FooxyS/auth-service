@@ -2,8 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/FooxyS/auth-service/internal/domain"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -25,11 +28,11 @@ func (s *SessionPostgres) Save(ctx context.Context, session domain.Session) erro
 }
 
 func (s *SessionPostgres) Delete(ctx context.Context, pairID string) error {
-	_, err := s.DB.Exec(ctx, "DELETE FROM session_table WHERE pair_id=$1", pairID)
-	if err != nil {
-		return err
+	tag, err := s.DB.Exec(ctx, "DELETE FROM session_table WHERE pair_id=$1", pairID)
+	if rowsNumber := tag.RowsAffected(); rowsNumber == 0 {
+		return apperrors.ErrSessionNotFound
 	}
-	return nil
+	return err
 }
 
 func (s *SessionPostgres) UpdateSession(ctx context.Context, oldPair, pair, refreshHash string) error {
@@ -45,7 +48,9 @@ func (s *SessionPostgres) FindByPairID(ctx context.Context, pairID string) (doma
 
 	row := s.DB.QueryRow(ctx, "SELECT user_id, ip_address, refresh_token, pair_id, useragent FROM session_table WHERE pair_id=$1", pairID)
 	err := row.Scan(&session.UserID, &session.IPAddress, &session.RefreshHash, &session.PairID, &session.UserAgent)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Session{}, apperrors.ErrFindSession
+	} else if err != nil {
 		return domain.Session{}, err
 	}
 	return session, nil
