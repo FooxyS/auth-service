@@ -3,7 +3,9 @@ package tokens
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/FooxyS/auth-service/internal/domain"
@@ -37,7 +39,9 @@ func (j *JWTService) GenerateAccessToken(id string, pairID string) (string, erro
 		},
 	}
 
-	newAccessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS512, newClaims).SignedString(os.Getenv(consts.JWT_KEY))
+	secretString := os.Getenv(consts.JWT_KEY)
+
+	newAccessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS512, newClaims).SignedString([]byte(secretString))
 	if err != nil {
 		return "", err
 	}
@@ -66,16 +70,17 @@ func (j *JWTService) GeneratePairID() (string, error) {
 func (j *JWTService) ValidateAccessToken(access string) (string, string, error) {
 	newClaims := new(MyCustomClaims)
 
-	token, errParse := jwt.ParseWithClaims(access, newClaims, func(t *jwt.Token) (interface{}, error) {
+	s := strings.Split(access, " ")
+	if len(s) != 2 {
+		return "", "", apperrors.ErrBearer
+	}
+
+	_, errParse := jwt.ParseWithClaims(s[1], newClaims, func(t *jwt.Token) (interface{}, error) {
 		secret := os.Getenv(consts.JWT_KEY)
 		return []byte(secret), nil
 	})
-	if errParse != nil {
+	if errParse != nil && !errors.Is(errParse, jwt.ErrTokenExpired) {
 		return "", "", errParse
-	}
-
-	if !token.Valid {
-		return newClaims.UserID, newClaims.PairID, apperrors.ErrNotValid
 	}
 
 	return newClaims.UserID, newClaims.PairID, nil
