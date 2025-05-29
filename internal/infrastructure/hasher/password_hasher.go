@@ -1,7 +1,10 @@
 package hasher
 
 import (
+	"errors"
+
 	"github.com/FooxyS/auth-service/internal/domain"
+	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -13,7 +16,11 @@ type BcryptHasher struct {
 }
 
 func (n BcryptHasher) Compare(hash, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+		return apperrors.ErrPasswordMismatch
+	} else {
+		return err
+	}
 }
 
 func (n BcryptHasher) Hash(password string) (string, error) {
