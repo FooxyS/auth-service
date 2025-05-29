@@ -57,7 +57,7 @@ func (u *UserPostgres) FindByEmail(ctx context.Context, email string) (domain.Us
 func (u *UserPostgres) FindByUserID(ctx context.Context, id string) (domain.User, error) {
 	var user domain.User
 
-	err := u.DB.QueryRow(ctx, "SELECT * FROM users WHERE user_id=$1", id).Scan(&user.UserID, &user.Email, &user.PasswordHash)
+	err := u.DB.QueryRow(ctx, "SELECT user_id, email, password FROM users WHERE user_id=$1", id).Scan(&user.UserID, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return domain.User{}, err
 	}
