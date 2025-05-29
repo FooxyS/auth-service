@@ -2,9 +2,10 @@ package usecase
 
 import (
 	"context"
+	"log"
+
 	"github.com/FooxyS/auth-service/internal/domain"
 	"github.com/FooxyS/auth-service/pkg/apperrors"
-	"log"
 )
 
 type RefreshUseCase struct {

@@ -9,4 +9,8 @@ var (
 	ErrAgentMismatch    = errors.New("agent mismatch, session was deleted")
 	ErrNotValid         = errors.New("this argument is not valid")
 	ErrSessionNotFound  = errors.New("session not found")
+
+	ErrFindSession = errors.New("session is not exists")
+
+	ErrBearer = errors.New("bearer header is incorrect")
 )
