@@ -43,16 +43,19 @@ func (h *RefreshHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	tokens, errExecute := h.UseCase.Execute(r.Context(), access, refresh, host, agent)
 
-	if errors.Is(errExecute, apperrors.ErrIPMismatch) {
+	if errors.Is(errExecute, apperrors.ErrFindSession) {
+		WriteJSON(w, http.StatusBadRequest, "Session not found. Please, login again")
+		return
+	} else if errors.Is(errExecute, apperrors.ErrIPMismatch) {
 		WriteJSON(w, http.StatusConflict, "IP address mismatch")
 		return
-	}
-	if errors.Is(errExecute, apperrors.ErrAgentMismatch) {
+	} else if errors.Is(errExecute, apperrors.ErrAgentMismatch) {
 		WriteJSON(w, http.StatusConflict, "User-Agent mismatch")
 		return
-	}
-
-	if errExecute != nil {
+	} else if errors.Is(errExecute, apperrors.ErrBearer) {
+		WriteJSON(w, http.StatusBadRequest, "problem with bearer authorization token")
+		return
+	} else if errExecute != nil {
 		log.Printf("Execute error: %v", errExecute)
 		WriteJSON(w, http.StatusInternalServerError, "Internal Server Error")
 		return
