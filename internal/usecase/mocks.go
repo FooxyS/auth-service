@@ -19,6 +19,7 @@ var (
 	ErrCompare        = errors.New("error while compare")
 	ErrFind           = errors.New("error while find")
 	ErrUpdate         = errors.New("error while updating")
+	ErrHash           = errors.New("error while hashing password")
 )
 
 type MockUserRepository struct {
@@ -46,7 +47,7 @@ func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, er
 		return true, nil
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "Exists")
 	}
 
@@ -55,11 +56,12 @@ func (m *MockUserRepository) Exists(ctx context.Context, email string) (bool, er
 
 func (m *MockUserRepository) Save(ctx context.Context, user domain.User) error {
 	if m.SaveFail {
+		m.savedUser = domain.User{}
 		return ErrSave
 	}
 	m.savedUser = user
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "Save")
 	}
 
@@ -72,7 +74,7 @@ func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (dom
 		return domain.User{}, ErrFind
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "FindByEmail")
 	}
 
@@ -85,7 +87,7 @@ func (m *MockUserRepository) FindByUserID(ctx context.Context, id string) (domai
 		return domain.User{}, ErrFind
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "FindByUserID")
 	}
 
@@ -96,6 +98,11 @@ func (m *MockUserRepository) GenerateUserID() (string, error) {
 	if m.GenerateUserIDFail {
 		return "", ErrGenUserID
 	}
+
+	if m.CalledNeed && m.CalledSlice != nil {
+		*m.CalledSlice = append(*m.CalledSlice, "GenerateUserID")
+	}
+
 	return "some new userID", nil
 }
 
@@ -119,7 +126,7 @@ func (m *MockSessionRepository) Save(ctx context.Context, session domain.Session
 	}
 	m.SavedSession = session
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "Save")
 	}
 
@@ -133,7 +140,7 @@ func (m *MockSessionRepository) Delete(ctx context.Context, pairID string) error
 	}
 	m.DeletedSession = m.SessionForDelete
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "Delete")
 	}
 
@@ -150,7 +157,7 @@ func (m *MockSessionRepository) UpdateSession(ctx context.Context, oldPair, pair
 	m.UpdatedSession.PairID = pair
 	m.UpdatedSession.RefreshHash = refreshHash
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "UpdateSession")
 	}
 
@@ -162,7 +169,7 @@ func (m *MockSessionRepository) FindByPairID(ctx context.Context, pairID string)
 		return domain.Session{}, ErrFind
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "FindByPairID")
 	}
 
@@ -185,7 +192,7 @@ func (m MockTokenService) GenerateAccessToken(id string, pairID string) (string,
 		return "", ErrGenAccess
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "GenerateAccessToken")
 	}
 
@@ -197,7 +204,7 @@ func (m MockTokenService) GenerateRefreshToken() (string, string, error) {
 		return "", "", ErrGenRefresh
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "GenerateRefreshToken")
 	}
 
@@ -209,7 +216,7 @@ func (m MockTokenService) GeneratePairID() (string, error) {
 		return "", ErrGenPairID
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "GeneratePairID")
 	}
 
@@ -221,7 +228,7 @@ func (m MockTokenService) ValidateAccessToken(access string) (string, string, er
 		return "", "", ErrValidateAccess
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "ValidateAccessToken")
 	}
 
@@ -240,16 +247,21 @@ func (m MockPasswordHasher) Compare(hash, password string) error {
 		return ErrCompare
 	}
 
-	if m.CalledNeed {
+	if m.CalledNeed && m.CalledSlice != nil {
 		*m.CalledSlice = append(*m.CalledSlice, "Compare")
 	}
 
 	return nil
 }
 
-func (m MockPasswordHasher) Hash(password string) ([]byte, error) {
+func (m MockPasswordHasher) Hash(password string) (string, error) {
 	if m.HashFail {
-		return nil, errors.New("hash error")
+		return "", ErrHash
 	}
-	return []byte("some password hash"), nil
+
+	if m.CalledNeed && m.CalledSlice != nil {
+		*m.CalledSlice = append(*m.CalledSlice, "Hash")
+	}
+
+	return "some password hash", nil
 }

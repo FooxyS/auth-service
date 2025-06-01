@@ -2,10 +2,11 @@ package usecase
 
 import (
 	"context"
+	"testing"
+
 	"github.com/FooxyS/auth-service/internal/domain"
 	"github.com/FooxyS/auth-service/pkg/apperrors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestRegisterUseCase_Execute(t *testing.T) {
@@ -25,13 +26,20 @@ func TestRegisterUseCase_Execute(t *testing.T) {
 		PasswordHash: "some password token hash",
 	}
 
+	expectedUser := domain.User{
+		UserID:       "some new userID",
+		Email:        "Tim@gmail.com",
+		PasswordHash: "some password hash",
+	}
+
 	CalledSlice := new([]string)
 
-	expectedSlice := []string{"Exists", "Save"}
+	expectedSlice := []string{"Exists", "Hash", "GenerateUserID", "Save"}
 
 	tables := []struct {
 		Name       string
 		UserRepo   *MockUserRepository
+		Hasher     *MockPasswordHasher
 		WantedUser domain.User
 		WantErr    error
 	}{
@@ -40,14 +48,28 @@ func TestRegisterUseCase_Execute(t *testing.T) {
 			UserRepo: &MockUserRepository{
 				existingUser: userInRepo,
 				ExistsFail:   true,
+				CalledNeed:   false,
 			},
+			Hasher:  &MockPasswordHasher{},
 			WantErr: ErrExists,
+		},
+		{
+			Name: "Hash fails",
+			UserRepo: &MockUserRepository{
+				existingUser: domain.User{},
+			},
+			Hasher: &MockPasswordHasher{
+				HashFail: true,
+			},
+			WantErr: ErrHash,
 		},
 		{
 			Name: "user already exists",
 			UserRepo: &MockUserRepository{
 				existingUser: userInRepo,
+				CalledNeed:   false,
 			},
+			Hasher:     &MockPasswordHasher{},
 			WantedUser: domain.User{},
 			WantErr:    apperrors.ErrUserExists,
 		},
@@ -56,8 +78,10 @@ func TestRegisterUseCase_Execute(t *testing.T) {
 			UserRepo: &MockUserRepository{
 				existingUser: domain.User{},
 				SaveFail:     true,
+				CalledNeed:   false,
 			},
-			WantedUser: userInRepo,
+			Hasher:     &MockPasswordHasher{},
+			WantedUser: domain.User{},
 			WantErr:    ErrSave,
 		},
 		{
@@ -66,7 +90,11 @@ func TestRegisterUseCase_Execute(t *testing.T) {
 				CalledNeed:  true,
 				CalledSlice: CalledSlice,
 			},
-			WantedUser: userInRepo,
+			Hasher: &MockPasswordHasher{
+				CalledNeed:  true,
+				CalledSlice: CalledSlice,
+			},
+			WantedUser: expectedUser,
 			WantErr:    nil,
 		},
 	}
@@ -75,9 +103,10 @@ func TestRegisterUseCase_Execute(t *testing.T) {
 		t.Run(table.Name, func(t *testing.T) {
 			useCase := RegisterUseCase{
 				UserRepo: table.UserRepo,
+				Hasher:   table.Hasher,
 			}
 
-			err := useCase.Execute(context.Background(), input.user)
+			err := useCase.Execute(context.Background(), input.user.Email, input.user.PasswordHash)
 
 			assert.ErrorIs(t, err, table.WantErr)
 
