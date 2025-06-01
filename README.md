@@ -25,7 +25,9 @@
 
 
 3. Соберите и запустите сервис через Docker Compose:
+    ```bash
     docker-compose up --build
+    ```
 
 Сервис будет доступен на http://localhost:8088.
 
