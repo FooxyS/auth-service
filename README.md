@@ -15,8 +15,10 @@
 ## Запуск
 
 1. Клонируйте репозиторий:
+    ``sh
     git clone https://github.com/FooxyS/auth-service.git
     cd auth-service
+    ``
 
 2. Создайте файл .env на основе .env.example и заполните переменные окружения.
 
