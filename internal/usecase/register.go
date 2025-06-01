@@ -33,7 +33,7 @@ func (ru RegisterUseCase) Execute(ctx context.Context, email, password string) e
 	user := domain.User{
 		UserID:       newUserID,
 		Email:        email,
-		PasswordHash: string(passHash),
+		PasswordHash: passHash,
 	}
 
 	errSave := ru.UserRepo.Save(ctx, user)
