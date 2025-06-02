@@ -40,7 +40,9 @@
 
 ## Тесты
 Для запуска unit-тестов:
+    ```bash
     go test ./internal/usecase/
+    ```
 
 ## Структура проекта
 - cmd/main.go — точка входа
